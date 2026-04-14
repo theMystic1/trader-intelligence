@@ -1,8 +1,4 @@
-import {
-  getBacktests,
-  getBacktestStats,
-  getOverviewStats,
-} from "@/server/lib/api/backtest/api";
+import { getBacktests, getOverviewStats } from "@/server/lib/api/backtest/api";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 
@@ -31,19 +27,4 @@ export const useOverviewStats = () => {
   });
 
   return { overviewStats, isLoadingOverviewStats, refetchOverviewStats };
-};
-
-export const useBacktestStats = () => {
-  const { backtestId } = useParams();
-  const {
-    data: backtestStats,
-    isLoading: isLoadingBacktestStats,
-    refetch: refetchBacktestStats,
-  } = useQuery({
-    queryKey: ["backtestStats", backtestId],
-    queryFn: () => getBacktestStats(String(backtestId)),
-    enabled: !!backtestId,
-  });
-
-  return { backtestStats, isLoadingBacktestStats, refetchBacktestStats };
 };

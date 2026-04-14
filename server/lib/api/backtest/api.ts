@@ -1,5 +1,5 @@
 import { BacktestType } from "@/types";
-import { post, get } from "../api-client";
+import { post, get, del } from "../api-client";
 
 const baseUrl = "/api/trades/backtests";
 
@@ -21,4 +21,16 @@ export async function getBacktestStats(backtestId: string) {
 
 export async function getBacktestById(backtestId: string) {
   return get(`${baseUrl}/${backtestId}`);
+}
+
+export async function deleteBacktest(backtestId: string) {
+  return del(`${baseUrl}/${backtestId}`);
+}
+
+export async function logNewTrade(body: any, backtestId: string) {
+  return post(`${baseUrl}/${backtestId}/trade`, body);
+}
+
+export async function logNewTradesBulk(body: any, backtestId: string) {
+  return post(`${baseUrl}/${backtestId}/bulk`, body);
 }
