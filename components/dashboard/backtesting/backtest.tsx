@@ -1,23 +1,18 @@
 "use client";
 
-import { MOCK_STATS, MOCK_TRADES } from "@/lib/constants";
 import { Direction, Outcome, SortDir, SortKey, Trade } from "@/types";
-import { ReactNode, useState } from "react";
+import { useMemo, useState } from "react";
 import BacktestTable from "./backtest-table";
-import useGetInstruments from "@/hooks/usegetInstruments";
-import { InstrumentPicker } from "@/components/ui/instruments/instrument-picker";
-
-/* ──────────────────────────────────────────
-   Table primitives (your existing components)
-────────────────────────────────────────── */
-
-/* ──────────────────────────────────────────
-   Mock data (mirrors BacktestSchema + getBacktestStats)
-────────────────────────────────────────── */
-
-/* equity curve data */
-const EQUITY_CURVE = [10000, 10940, 11640, 11190, 12310, 11960, 13320, 13920];
-const EQUITY_LABELS = ["Start", "T1", "T2", "T3", "T4", "T5", "T6", "T7"];
+import { useBacktestStats, useSingleBacktest } from "@/hooks/useSingleBacktest";
+import AdminDashboardSkeleton from "@/app/loading";
+import { formatCurrency, formatDate } from "@/lib/helpers";
+import TradeLogModal from "./modals/trade-log-modal";
+import { logNewTradesBulk } from "@/server/lib/api/backtest/api";
+import toast from "react-hot-toast";
+import { toApiError } from "@/server/lib/api-error";
+import { BULK_TRADES_WIN, MOCK_TRADES } from "@/lib/constants";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 /* ──────────────────────────────────────────
    Micro components
@@ -40,7 +35,11 @@ export function Badge({ outcome }: { outcome: Outcome }) {
 export function DirectionBadge({ dir }: { dir: Direction }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${dir === "buy" ? "bg-blue-500/15 text-blue-400" : "bg-orange-500/15 text-orange-400"}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+        dir === "buy"
+          ? "bg-blue-500/15 text-blue-400"
+          : "bg-orange-500/15 text-orange-400"
+      }`}
     >
       {dir === "buy" ? "▲" : "▼"} {dir}
     </span>
@@ -52,11 +51,13 @@ function StatCard({
   value,
   sub,
   accent = false,
+  loss = false,
 }: {
   label: string;
   value: string;
   sub?: string;
   accent?: boolean;
+  loss?: boolean;
 }) {
   return (
     <div className="bg-[#131620] border border-[#1e2a3a] rounded-xl p-4">
@@ -64,7 +65,7 @@ function StatCard({
         {label}
       </p>
       <p
-        className={`text-2xl font-bold ${accent ? "text-green-400" : "text-white"}`}
+        className={`text-lg font-bold ${loss ? "text-red-400" : accent ? "text-green-400" : "text-white"}`}
       >
         {value}
       </p>
@@ -74,9 +75,46 @@ function StatCard({
 }
 
 /* ──────────────────────────────────────────
-   Equity Curve SVG chart
+   Empty state
 ────────────────────────────────────────── */
-function EquityChart() {
+function EmptyState({ onRefetch }: { onRefetch: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-4">
+      <div className="w-16 h-16 rounded-2xl bg-[#131620] border border-[#1e2a3a] flex items-center justify-center">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#374151"
+          strokeWidth="1.5"
+        >
+          <path d="M3 3h18v18H3z" rx="2" />
+          <path d="M3 9h18M9 21V9" />
+        </svg>
+      </div>
+      <div className="text-center">
+        <p className="text-sm font-semibold text-gray-400">
+          No trades logged yet
+        </p>
+        <p className="text-xs text-gray-600 mt-1">
+          Log your first trade to start seeing stats, charts, and insights.
+        </p>
+      </div>
+      <button
+        onClick={onRefetch}
+        className="text-xs text-blue-400 border border-blue-500/20 bg-blue-500/10 px-4 py-2 rounded-lg hover:bg-blue-500/20 transition-colors"
+      >
+        Refresh
+      </button>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────
+   Equity Curve
+────────────────────────────────────────── */
+function EquityChart({ curve, labels }: { curve: number[]; labels: string[] }) {
   const W = 600,
     H = 180,
     padL = 60,
@@ -85,19 +123,22 @@ function EquityChart() {
     padR = 20;
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
-  const minVal = Math.min(...EQUITY_CURVE) * 0.995;
-  const maxVal = Math.max(...EQUITY_CURVE) * 1.005;
-  const range = maxVal - minVal;
+  const minVal = Math.min(...curve) * 0.995;
+  const maxVal = Math.max(...curve) * 1.005;
+  const range = maxVal - minVal || 1; // avoid div/0 with 1 point
 
-  const px = (i: number) => padL + (i / (EQUITY_CURVE.length - 1)) * innerW;
+  const px = (i: number) =>
+    curve.length === 1
+      ? padL + innerW / 2
+      : padL + (i / (curve.length - 1)) * innerW;
   const py = (v: number) => padT + innerH - ((v - minVal) / range) * innerH;
 
-  const pathD = EQUITY_CURVE.map(
-    (v, i) => `${i === 0 ? "M" : "L"} ${px(i)} ${py(v)}`,
-  ).join(" ");
+  const pathD = curve
+    .map((v, i) => `${i === 0 ? "M" : "L"} ${px(i)} ${py(v)}`)
+    .join(" ");
   const areaD =
     pathD +
-    ` L ${px(EQUITY_CURVE.length - 1)} ${padT + innerH} L ${px(0)} ${padT + innerH} Z`;
+    ` L ${px(curve.length - 1)} ${padT + innerH} L ${px(0)} ${padT + innerH} Z`;
 
   const gridVals = [
     minVal,
@@ -135,7 +176,7 @@ function EquityChart() {
           </text>
         </g>
       ))}
-      {EQUITY_LABELS.map((label, i) => (
+      {labels.map((label, i) => (
         <text
           key={label}
           x={px(i)}
@@ -155,7 +196,7 @@ function EquityChart() {
         strokeWidth="2"
         strokeLinejoin="round"
       />
-      {EQUITY_CURVE.map((v, i) => (
+      {curve.map((v, i) => (
         <circle
           key={i}
           cx={px(i)}
@@ -171,7 +212,7 @@ function EquityChart() {
 }
 
 /* ──────────────────────────────────────────
-   Win / Loss / BE donut
+   Outcome Donut
 ────────────────────────────────────────── */
 function OutcomeDonut({
   wins,
@@ -189,15 +230,37 @@ function OutcomeDonut({
     cy = 70,
     stroke = 14;
   const circ = 2 * Math.PI * r;
-  const wPct = wins / total;
-  const lPct = losses / total;
-  const bPct = breakevens / total;
-  const wDash = circ * wPct;
-  const lDash = circ * lPct;
-  const bDash = circ * bPct;
-  const wOff = 0;
-  const lOff = -wDash;
-  const bOff = -(wDash + lDash);
+
+  // Guard: render empty ring when no trades
+  if (total === 0) {
+    return (
+      <div className="flex items-center gap-6">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke="#1e2a3a"
+            strokeWidth={stroke}
+          />
+          <text
+            x={cx}
+            y={cy + 6}
+            textAnchor="middle"
+            fontSize="11"
+            fill="#4b5563"
+          >
+            No trades
+          </text>
+        </svg>
+      </div>
+    );
+  }
+
+  const wDash = circ * (wins / total);
+  const lDash = circ * (losses / total);
+  const bDash = circ * (breakevens / total);
 
   return (
     <div className="flex items-center gap-6">
@@ -210,6 +273,7 @@ function OutcomeDonut({
           stroke="#1e2a3a"
           strokeWidth={stroke}
         />
+        {/* Wins */}
         <circle
           cx={cx}
           cy={cy}
@@ -218,10 +282,11 @@ function OutcomeDonut({
           stroke="#22c55e"
           strokeWidth={stroke}
           strokeDasharray={`${wDash} ${circ - wDash}`}
-          strokeDashoffset={wOff}
+          strokeDashoffset={0}
           strokeLinecap="butt"
           transform={`rotate(-90 ${cx} ${cy})`}
         />
+        {/* Losses */}
         <circle
           cx={cx}
           cy={cy}
@@ -230,10 +295,11 @@ function OutcomeDonut({
           stroke="#ef4444"
           strokeWidth={stroke}
           strokeDasharray={`${lDash} ${circ - lDash}`}
-          strokeDashoffset={lOff}
+          strokeDashoffset={-wDash}
           strokeLinecap="butt"
           transform={`rotate(-90 ${cx} ${cy})`}
         />
+        {/* Breakevens */}
         <circle
           cx={cx}
           cy={cy}
@@ -242,7 +308,7 @@ function OutcomeDonut({
           stroke="#f59e0b"
           strokeWidth={stroke}
           strokeDasharray={`${bDash} ${circ - bDash}`}
-          strokeDashoffset={bOff}
+          strokeDashoffset={-(wDash + lDash)}
           strokeLinecap="butt"
           transform={`rotate(-90 ${cx} ${cy})`}
         />
@@ -304,13 +370,13 @@ function OutcomeDonut({
 }
 
 /* ──────────────────────────────────────────
-   Edge Score gauge
+   Edge Gauge
 ────────────────────────────────────────── */
 function EdgeGauge({ score, hasEdge }: { score: number; hasEdge: boolean }) {
   const r = 48,
     cx = 70,
     cy = 76;
-  const circ = Math.PI * r; // half circle
+  const circ = Math.PI * r;
   const filled = (score / 100) * circ;
   const color = score >= 70 ? "#22c55e" : score >= 45 ? "#f59e0b" : "#ef4444";
 
@@ -401,9 +467,17 @@ function EdgeGauge({ score, hasEdge }: { score: number; hasEdge: boolean }) {
 }
 
 /* ──────────────────────────────────────────
-   P&L bar chart (per trade)
+   P&L Bars
 ────────────────────────────────────────── */
 function PnLBars({ trades }: { trades: Trade[] }) {
+  if (!trades.length) {
+    return (
+      <div className="flex items-center justify-center h-[120px]">
+        <p className="text-xs text-gray-600">No trade data yet</p>
+      </div>
+    );
+  }
+
   const W = 600,
     H = 120,
     padL = 48,
@@ -412,7 +486,7 @@ function PnLBars({ trades }: { trades: Trade[] }) {
     padR = 10;
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
-  const max = Math.max(...trades.map((t) => Math.abs(t.profitLoss)));
+  const max = Math.max(...trades.map((t) => Math.abs(t.profitLoss)), 1);
   const barW = (innerW / trades.length) * 0.6;
   const gap = innerW / trades.length;
   const midY = padT + innerH / 2;
@@ -452,7 +526,7 @@ function PnLBars({ trades }: { trades: Trade[] }) {
         const y = t.profitLoss >= 0 ? midY - h : midY;
         return (
           <rect
-            key={t.id}
+            key={String(t.id ?? i)}
             x={x}
             y={y}
             width={barW}
@@ -476,13 +550,47 @@ function PnLBars({ trades }: { trades: Trade[] }) {
 /* ──────────────────────────────────────────
    Page
 ────────────────────────────────────────── */
-
 export default function BacktestPage() {
-  const [sortKey, setSortKey] = useState<SortKey>("id");
+  const [sortKey, setSortKey] = useState<SortKey>("entryTime");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [filterOutcome, setFilterOutcome] = useState<"all" | Outcome>("all");
   const [filterDir, setFilterDir] = useState<"all" | Direction>("all");
-  const s = MOCK_STATS;
+  const [isLoading, setIsLoading] = useState(false);
+  const { backtest, isLoadingBacktest, refetchBacktest } = useSingleBacktest();
+  const { backtestStats, isLoadingBacktestStats, refetchBacktestStats } =
+    useBacktestStats();
+  const router = useRouter();
+  const refetchAll = async () => {
+    await Promise.all([refetchBacktest(), refetchBacktestStats()]);
+  };
+
+  // ── Normalise stats with safe fallbacks ──
+  const stats = useMemo(
+    () => ({
+      netProfit: backtestStats?.netProfit ?? 0,
+      totalProfit: backtestStats?.totalProfit ?? 0,
+      grossProfit: backtestStats?.grossProfit ?? 0,
+      grossLoss: backtestStats?.grossLoss ?? 0,
+      winRate: backtestStats?.winRate ?? 0,
+      wins: backtestStats?.wins ?? 0,
+      losses: backtestStats?.losses ?? 0,
+      breakevens: backtestStats?.breakevens ?? 0,
+      totalTrades: backtestStats?.totalTrades ?? 0,
+      profitFactor: backtestStats?.profitFactor ?? 0,
+      averageRR: backtestStats?.averageRR ?? 0,
+      expectancy: backtestStats?.expectancy ?? 0,
+      edgeScore: backtestStats?.edgeScore ?? 0,
+      hasEdge: backtestStats?.hasEdge ?? false,
+      maxDrawdown: backtestStats?.maxDrawdown ?? 0,
+      initialBalance: backtestStats?.initialBalance ?? 0,
+      finalBalance: backtestStats?.finalBalance ?? 0,
+      equityCurve: backtestStats?.equityCurve ?? [],
+      equityLabels: backtestStats?.equityLabels ?? [],
+      trades: (backtestStats?.trades ?? []) as Trade[],
+      riskPerTrade: backtestStats?.riskPerTrade ?? 0,
+    }),
+    [backtestStats],
+  );
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -492,21 +600,65 @@ export default function BacktestPage() {
     }
   };
 
-  const filtered = MOCK_TRADES.filter(
-    (t) => filterOutcome === "all" || t.outcome === filterOutcome,
-  )
-    .filter((t) => filterDir === "all" || t.direction === filterDir)
-    .sort((a, b) => {
-      const av = a[sortKey],
-        bv = b[sortKey];
-      if (av === undefined || bv === undefined) return 0;
-      return sortDir === "asc" ? (av > bv ? 1 : -1) : av < bv ? 1 : -1;
-    });
+  const filtered = useMemo(
+    () =>
+      stats.trades
+        .filter((t) => filterOutcome === "all" || t.outcome === filterOutcome)
+        .filter((t) => filterDir === "all" || t.direction === filterDir)
+        .sort((a, b) => {
+          const av = a[sortKey],
+            bv = b[sortKey];
+          if (av === undefined || bv === undefined) return 0;
+          return sortDir === "asc" ? (av > bv ? 1 : -1) : av < bv ? 1 : -1;
+        }),
+    [stats.trades, filterOutcome, filterDir, sortKey, sortDir],
+  );
+
+  if (isLoadingBacktest || isLoadingBacktestStats)
+    return <AdminDashboardSkeleton />;
+
+  const singleBt = backtest?.data;
+  const hasNoTrades = stats.totalTrades === 0;
+
+  const handleSubmit = async () => {
+    // if (!validate()) return;
+    setIsLoading(true);
+    try {
+      // BULK_TRADES_LOSS
+      await logNewTradesBulk(
+        {
+          trades: BULK_TRADES_WIN,
+        },
+        singleBt?._id,
+      );
+
+      toast.success("Trade logged successfully");
+      await refetchAll();
+    } catch (err) {
+      const { message } = toApiError(err);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0f1117] px-4 sm:px-6 lg:px-8 py-8 font-sans">
       <div className="max-w-7xl mx-auto">
         {/* ── Header ── */}
+        <div className="sticky top-0 bg-[#0f1117]/80 backdrop-blur flex items-center justify-between py-3 border-b border-[#1e2a3a]">
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-gray-400 hover:text-white"
+          >
+            ← Back
+          </button>
+
+          <TradeLogModal
+            backtestId={singleBt?._id ?? ""}
+            onRefetch={refetchAll}
+          />
+        </div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -515,246 +667,286 @@ export default function BacktestPage() {
               </h1>
               <span
                 className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
-                  s.hasEdge
+                  stats.hasEdge
                     ? "bg-green-500/15 text-green-400 border-green-500/30"
                     : "bg-red-500/15 text-red-400 border-red-500/30"
                 }`}
               >
-                {s.hasEdge ? "Edge Confirmed" : "No Edge"}
+                {stats.hasEdge ? "Edge Confirmed" : "No Edge"}
               </span>
             </div>
             <p className="text-sm text-gray-500">
-              EURUSD · 1H · Jan 2024 · $10,000 initial
+              {singleBt?.pair?.pairName ?? "—"} · {singleBt?.timeframe ?? "—"} ·{" "}
+              {singleBt?.createdAt
+                ? formatDate(new Date(singleBt.createdAt))
+                : "—"}{" "}
+              ·{" "}
+              {singleBt?.initialBalance
+                ? formatCurrency(singleBt.initialBalance)
+                : "—"}{" "}
+              initial
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span
-              className={`text-xs px-3 py-1.5 rounded-lg border font-semibold ${"bg-blue-500/10 text-blue-400 border-blue-500/20"}`}
+            <button
+              onClick={handleSubmit}
+              className="text-xs px-3 py-1.5 bg-amber-600 text-amber-100 rounded-lg border font-semibold uppercase"
+              disabled={isLoading}
             >
-              Completed
+              {isLoading ? "Submitting..." : " Seed Dummy trades"}
+            </button>
+            <span
+              className={`text-xs px-3 py-1.5 rounded-lg border font-semibold uppercase ${
+                singleBt?.status === "completed"
+                  ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                  : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+              }`}
+            >
+              {singleBt?.status ?? "—"}
             </span>
-
-            {/*<button className="flex items-center gap-1.5 text-sm text-gray-400 border border-[#1e2a3a] hover:border-[#2a3a50] rounded-lg px-3 py-1.5 transition-colors">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Export
-            </button>*/}
           </div>
         </div>
 
-        {/* ── KPI cards ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <StatCard
-            label="Net Profit"
-            value={`$${s.netProfit.toLocaleString()}`}
-            sub={`+${(((s.finalBalance - s.initialBalance) / s.initialBalance) * 100).toFixed(1)}%`}
-            accent
-          />
-          <StatCard
-            label="Win Rate"
-            value={`${s.winRate.toFixed(1)}%`}
-            sub={`${s.wins}W / ${s.losses}L`}
-          />
-          <StatCard
-            label="Profit Factor"
-            value={s.profitFactor.toFixed(2)}
-            sub="Gross P / Gross L"
-          />
-          <StatCard label="Avg R:R" value={`${s.avgRR}R`} sub="per trade" />
-          <StatCard
-            label="Expectancy"
-            value={`${s.expectancy.toFixed(2)}R`}
-            sub="per trade"
-          />
-          <StatCard
-            label="Max Drawdown"
-            value={`${s.maxDrawdown}%`}
-            sub="from peak"
-          />
-        </div>
-
-        {/* ── Charts row ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
-          {/* Equity curve */}
-          <div className="lg:col-span-7 bg-[#131620] border border-[#1e2a3a] rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-semibold text-white">Equity Curve</p>
-                <p className="text-xs text-gray-500">
-                  ${s.initialBalance.toLocaleString()} → $
-                  {s.finalBalance.toLocaleString()}
-                </p>
-              </div>
-              <span className="text-sm font-bold text-green-400">
-                +${(s.finalBalance - s.initialBalance).toLocaleString()}
-              </span>
-            </div>
-            <EquityChart />
-          </div>
-
-          {/* Right column: donut + edge gauge */}
-          <div className="lg:col-span-5 flex flex-col gap-4">
-            <div className="bg-[#131620] border border-[#1e2a3a] rounded-2xl p-5 flex-1">
-              <p className="text-sm font-semibold text-white mb-4">
-                Outcome Distribution
-              </p>
-              <OutcomeDonut
-                wins={s.wins}
-                losses={s.losses}
-                breakevens={s.breakevens}
-                total={s.totalTrades}
+        {/* ── Empty state ── */}
+        {hasNoTrades ? (
+          <EmptyState onRefetch={refetchAll} />
+        ) : (
+          <>
+            {/* ── KPI cards ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+              <StatCard
+                label="Net Profit"
+                value={`${formatCurrency(stats.netProfit.toFixed(2))}`}
+                sub={`Risk × RR × ${stats.wins}W`}
+                accent
+                loss={stats.netProfit < 0}
+              />
+              <StatCard
+                label="Win Rate"
+                value={`${stats.winRate.toFixed(1)}%`}
+                sub={`${stats.wins}W / ${stats.losses}L`}
+              />
+              <StatCard
+                label="Profit Factor"
+                value={stats.profitFactor.toFixed(2)}
+                sub="Gross P / Gross L"
+              />
+              <StatCard
+                label="Avg R:R"
+                value={`${stats.averageRR.toFixed(2)}R`}
+                sub="per trade"
+              />
+              <StatCard
+                label="Expectancy"
+                value={`${stats.expectancy.toFixed(2)}R`}
+                sub="per trade"
+              />
+              <StatCard
+                label="Max Drawdown"
+                value={`${stats.maxDrawdown.toFixed(2)}%`}
+                sub="from peak"
               />
             </div>
-            <div className="bg-[#131620] border border-[#1e2a3a] rounded-2xl p-5 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-white mb-1">
-                  Edge Score
-                </p>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Win rate ≥ 40% &amp; avg R:R ≥ 3.0
-                  <br />
-                  required to confirm edge.
-                </p>
-                <div className="mt-3 flex flex-col gap-1.5">
-                  {[
-                    {
-                      label: "Win Rate",
-                      val: `${s.winRate.toFixed(1)}%`,
-                      ok: s.winRate >= 40,
-                    },
-                    { label: "Avg R:R", val: `${s.avgRR}R`, ok: s.avgRR >= 3 },
-                    {
-                      label: "Profit Factor",
-                      val: `${s.profitFactor.toFixed(2)}`,
-                      ok: s.profitFactor >= 1.5,
-                    },
-                  ].map((row) => (
-                    <div
-                      key={row.label}
-                      className="flex items-center gap-2 text-xs"
-                    >
-                      <span
-                        className={row.ok ? "text-green-400" : "text-red-400"}
-                      >
-                        {row.ok ? "✓" : "✗"}
-                      </span>
-                      <span className="text-gray-500">{row.label}</span>
-                      <span className="text-gray-300 font-semibold ml-auto">
-                        {row.val}
-                      </span>
+
+            {/* ── Charts row ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
+              {/* Equity curve */}
+              <div className="lg:col-span-7 bg-[#131620] border border-[#1e2a3a] rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      Equity Curve
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatCurrency(stats.initialBalance)} →{" "}
+                      {formatCurrency(stats.finalBalance)}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-sm font-bold ${stats.netProfit >= 0 ? "text-green-400" : "text-red-400"}`}
+                  >
+                    {stats.netProfit >= 0 ? "+" : ""}
+                    {formatCurrency(stats.netProfit)}
+                  </span>
+                </div>
+                {stats.equityCurve.length > 0 ? (
+                  <EquityChart
+                    curve={stats.equityCurve}
+                    labels={stats.equityLabels}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-[180px]">
+                    <p className="text-xs text-gray-600">Curve unavailable</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Donut + Edge gauge */}
+              <div className="lg:col-span-5 flex flex-col gap-4">
+                <div className="bg-[#131620] border border-[#1e2a3a] rounded-2xl p-5 flex-1">
+                  <p className="text-sm font-semibold text-white mb-4">
+                    Outcome Distribution
+                  </p>
+                  <OutcomeDonut
+                    wins={stats.wins}
+                    losses={stats.losses}
+                    breakevens={stats.breakevens}
+                    total={stats.totalTrades}
+                  />
+                </div>
+                <div className="bg-[#131620] border border-[#1e2a3a] rounded-2xl p-5 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-1">
+                      Edge Score
+                    </p>
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Win rate ≥ 40% &amp; avg R:R ≥ 3.0
+                      <br />
+                      required to confirm edge.
+                    </p>
+                    <div className="mt-3 flex flex-col gap-1.5">
+                      {[
+                        {
+                          label: "Win Rate",
+                          val: `${stats.winRate.toFixed(1)}%`,
+                          ok: stats.winRate >= 40,
+                        },
+                        {
+                          label: "Avg R:R",
+                          val: `${stats.averageRR.toFixed(2)}R`,
+                          ok: stats.averageRR >= 3,
+                        },
+                        {
+                          label: "Profit Factor",
+                          val: stats.profitFactor.toFixed(2),
+                          ok: stats.profitFactor >= 1.5,
+                        },
+                      ].map((row) => (
+                        <div
+                          key={row.label}
+                          className="flex items-center gap-2 text-xs"
+                        >
+                          <span
+                            className={
+                              row.ok ? "text-green-400" : "text-red-400"
+                            }
+                          >
+                            {row.ok ? "✓" : "✗"}
+                          </span>
+                          <span className="text-gray-500">{row.label}</span>
+                          <span className="text-gray-300 font-semibold ml-auto">
+                            {row.val}
+                          </span>
+                        </div>
+                      ))}
                     </div>
+                  </div>
+                  <EdgeGauge
+                    score={stats.edgeScore?.toFixed(1)}
+                    hasEdge={stats.hasEdge}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ── P&L bar chart ── */}
+            <div className="bg-[#131620] border border-[#1e2a3a] rounded-2xl p-5 mb-6">
+              <p className="text-sm font-semibold text-white mb-1">Trade P&L</p>
+              <p className="text-xs text-gray-500 mb-4">
+                Per-trade profit and loss
+              </p>
+              <PnLBars trades={stats.trades} />
+              <div className="flex items-center gap-4 mt-3">
+                {[
+                  { color: "bg-green-500", label: "Win" },
+                  { color: "bg-red-500", label: "Loss" },
+                  { color: "bg-yellow-500", label: "Breakeven" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-1.5 text-xs text-gray-500"
+                  >
+                    <div className={`w-2.5 h-2.5 rounded-sm ${item.color}`} />
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Trades table ── */}
+            <div className="bg-[#131620] border border-[#1e2a3a] rounded-2xl overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-[#1e2a3a]">
+                <div>
+                  <p className="text-sm font-semibold text-white">Trade Log</p>
+                  <p className="text-xs text-gray-500">
+                    {filtered.length} of {stats.totalTrades} trades
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-0 bg-[#0f1117] border border-[#1e2a3a] rounded-lg overflow-hidden">
+                    {(["all", "win", "loss", "breakeven"] as const).map(
+                      (opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => setFilterOutcome(opt)}
+                          className={`text-xs px-3 py-1.5 font-semibold transition-colors capitalize ${
+                            filterOutcome === opt
+                              ? "bg-blue-600 text-white"
+                              : "text-gray-500 hover:text-gray-300"
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                  <div className="flex items-center gap-0 bg-[#0f1117] border border-[#1e2a3a] rounded-lg overflow-hidden">
+                    {(["all", "buy", "sell"] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => setFilterDir(opt)}
+                        className={`text-xs px-3 py-1.5 font-semibold transition-colors capitalize ${
+                          filterDir === opt
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-500 hover:text-gray-300"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <BacktestTable
+                sortKey={sortKey}
+                sortDir={sortDir}
+                filtered={filtered}
+                handleSort={handleSort}
+              />
+
+              <div className="flex items-center justify-between px-5 py-3 border-t border-[#1e2a3a]">
+                <span className="text-xs text-gray-600">
+                  Showing {filtered.length} of {stats.totalTrades} results
+                </span>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3].map((p) => (
+                    <button
+                      key={p}
+                      className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
+                        p === 1
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-500 hover:text-gray-300 border border-[#1e2a3a]"
+                      }`}
+                    >
+                      {p}
+                    </button>
                   ))}
                 </div>
               </div>
-              <EdgeGauge score={s.edgeScore} hasEdge={s.hasEdge} />
             </div>
-          </div>
-        </div>
-
-        {/* ── P&L bar chart ── */}
-        <div className="bg-[#131620] border border-[#1e2a3a] rounded-2xl p-5 mb-6">
-          <p className="text-sm font-semibold text-white mb-1">Trade P&L</p>
-          <p className="text-xs text-gray-500 mb-4">
-            Per-trade profit and loss
-          </p>
-          <PnLBars trades={MOCK_TRADES} />
-          <div className="flex items-center gap-4 mt-3">
-            {[
-              { color: "bg-green-500", label: "Win" },
-              { color: "bg-red-500", label: "Loss" },
-              { color: "bg-yellow-500", label: "Breakeven" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center gap-1.5 text-xs text-gray-500"
-              >
-                <div className={`w-2.5 h-2.5 rounded-sm ${item.color}`} />
-                {item.label}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Trades table ── */}
-        <div className="bg-[#131620] border border-[#1e2a3a] rounded-2xl overflow-hidden">
-          {/* Table header row */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-[#1e2a3a]">
-            <div>
-              <p className="text-sm font-semibold text-white">Trade Log</p>
-              <p className="text-xs text-gray-500">
-                {filtered.length} of {MOCK_TRADES.length} trades
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Outcome filter */}
-              <div className="flex items-center gap-0 bg-[#0f1117] border border-[#1e2a3a] rounded-lg overflow-hidden">
-                {(["all", "win", "loss", "breakeven"] as const).map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setFilterOutcome(opt)}
-                    className={`text-xs px-3 py-1.5 font-semibold transition-colors capitalize ${
-                      filterOutcome === opt
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-500 hover:text-gray-300"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-              {/* Direction filter */}
-              <div className="flex items-center gap-0 bg-[#0f1117] border border-[#1e2a3a] rounded-lg overflow-hidden">
-                {(["all", "buy", "sell"] as const).map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setFilterDir(opt)}
-                    className={`text-xs px-3 py-1.5 font-semibold transition-colors capitalize ${
-                      filterDir === opt
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-500 hover:text-gray-300"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <BacktestTable
-            sortKey={sortKey}
-            sortDir={sortDir}
-            filtered={filtered}
-            handleSort={handleSort}
-          />
-
-          {/* Pagination row */}
-          <div className="flex items-center justify-between px-5 py-3 border-t border-[#1e2a3a]">
-            <span className="text-xs text-gray-600">
-              Showing {filtered.length} of {MOCK_TRADES.length} results
-            </span>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3].map((p) => (
-                <button
-                  key={p}
-                  className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${p === 1 ? "bg-blue-600 text-white" : "text-gray-500 hover:text-gray-300 border border-[#1e2a3a]"}`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

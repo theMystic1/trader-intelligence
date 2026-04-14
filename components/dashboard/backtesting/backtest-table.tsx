@@ -99,7 +99,7 @@ const BacktestTable = ({
                 </TableCell>
                 <TableCell>
                   <span className="text-xs font-semibold text-blue-400">
-                    {t.riskReward > 0 ? `${t.riskReward}R` : "—"}
+                    {t.riskReward > 0 ? `${t.riskReward.toFixed(2)}R` : "—"}
                   </span>
                 </TableCell>
                 <TableCell>

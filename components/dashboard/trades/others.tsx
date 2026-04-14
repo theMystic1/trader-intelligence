@@ -551,7 +551,7 @@ function InputField({
   prefix?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   value?: string;
-  type?: "text" | "number" | "password" | "date";
+  type?: "text" | "number" | "password" | "date" | "datetime-local";
 }) {
   return (
     <div

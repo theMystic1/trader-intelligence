@@ -1,23 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { BacktestTrade } from "../models/backtest-trade.schema";
 import Backtest from "../models/backtesting.schema";
 
-export async function logTrade(req: Request) {
+export async function logTrade(req: Request, id: string) {
   try {
     const body = await req.json();
 
-    const {
-      backtestId,
-      entryPrice,
-      exitPrice,
-      stopLoss,
-      takeProfit,
-      direction,
-    } = body;
+    const { direction, entryPrice, exitPrice, stopLoss, takeProfit } = body;
 
     // 🔒 Validate backtest exists
-    const backtest = await Backtest.findById(backtestId);
+    const backtest = await Backtest.findById(id);
     if (!backtest) {
       return NextResponse.json(
         { message: "Backtest not found" },
@@ -41,7 +34,7 @@ export async function logTrade(req: Request) {
 
     const trade = await BacktestTrade.create({
       ...body,
-      backtestId: new mongoose.Types.ObjectId(backtestId),
+      backtestId: new mongoose.Types.ObjectId(id),
 
       riskReward,
       profitLoss,
@@ -60,9 +53,9 @@ export async function logTrade(req: Request) {
   }
 }
 
-export async function logTradesBulk(req: Request) {
+export async function logTradesBulk(req: NextRequest, backtestId: string) {
   try {
-    const { trades, backtestId } = await req.json();
+    const body = await req.json();
 
     const backtest = await Backtest.findById(backtestId);
     if (!backtest) {
@@ -72,7 +65,7 @@ export async function logTradesBulk(req: Request) {
       );
     }
 
-    const enrichedTrades = trades.map((t: any) => {
+    const enrichedTrades = body.trades.map((t: any) => {
       const risk = Math.abs(t.entryPrice - t.stopLoss);
       const reward = Math.abs(t.takeProfit - t.entryPrice);
 

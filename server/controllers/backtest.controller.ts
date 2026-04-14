@@ -9,14 +9,10 @@ export async function getBacktestStats(req: NextRequest, id: string) {
     const backtestId = new mongoose.Types.ObjectId(id);
 
     const stats = await BacktestTrade.aggregate([
-      // 1. match trades for this backtest only
-      {
-        $match: {
-          backtestId,
-        },
-      },
+      // ── 1. Match trades ──
+      { $match: { backtestId } },
 
-      // 2. join backtest to enforce ownership
+      // ── 2. Join parent backtest ──
       {
         $lookup: {
           from: "backtests",
@@ -25,54 +21,104 @@ export async function getBacktestStats(req: NextRequest, id: string) {
           as: "backtest",
         },
       },
-
       { $unwind: "$backtest" },
 
-      // 3. SECURITY FILTER (VERY IMPORTANT)
+      // ── 3. Security filter ──
       {
         $match: {
           "backtest.userId": new mongoose.Types.ObjectId(userId),
         },
       },
 
-      // 4. aggregation
+      // ── 4. Sort chronologically ──
+      { $sort: { entryTime: 1 } },
+
+      // ── 5. Inject derivedPnL per trade BEFORE grouping ──
+      // win  → +riskPerTrade * riskReward
+      // loss → -riskPerTrade
+      // BE   → 0
+      {
+        $addFields: {
+          derivedPnL: {
+            $switch: {
+              branches: [
+                {
+                  case: { $eq: ["$outcome", "win"] },
+                  then: {
+                    $multiply: ["$backtest.riskPerTrade", "$riskReward"],
+                  },
+                },
+                {
+                  case: { $eq: ["$outcome", "loss"] },
+                  then: { $multiply: ["$backtest.riskPerTrade", -1] },
+                },
+              ],
+              default: 0, // breakeven
+            },
+          },
+          riskPerTrade: "$backtest.riskPerTrade",
+          initialBalance: "$backtest.initialBalance",
+        },
+      },
+
+      // ── 6. Group — collect everything ──
       {
         $group: {
           _id: "$backtestId",
 
+          initialBalance: { $first: "$initialBalance" },
+          riskPerTrade: { $first: "$riskPerTrade" },
           totalTrades: { $sum: 1 },
 
-          wins: {
-            $sum: { $cond: [{ $eq: ["$outcome", "win"] }, 1, 0] },
-          },
-
-          losses: {
-            $sum: { $cond: [{ $eq: ["$outcome", "loss"] }, 1, 0] },
-          },
-
-          breakeven: {
+          wins: { $sum: { $cond: [{ $eq: ["$outcome", "win"] }, 1, 0] } },
+          losses: { $sum: { $cond: [{ $eq: ["$outcome", "loss"] }, 1, 0] } },
+          breakevens: {
             $sum: { $cond: [{ $eq: ["$outcome", "breakeven"] }, 1, 0] },
           },
 
+          // Gross profit  = sum of all winning derivedPnL
           grossProfit: {
             $sum: {
-              $cond: [{ $gt: ["$profitLoss", 0] }, "$profitLoss", 0],
+              $cond: [{ $eq: ["$outcome", "win"] }, "$derivedPnL", 0],
             },
           },
-
+          // Gross loss = sum of all losing derivedPnL (negative number)
           grossLoss: {
             $sum: {
-              $cond: [{ $lt: ["$profitLoss", 0] }, "$profitLoss", 0],
+              $cond: [{ $eq: ["$outcome", "loss"] }, "$derivedPnL", 0],
+            },
+          },
+          // Net profit = grossProfit + grossLoss
+          netProfit: { $sum: "$derivedPnL" },
+
+          averageRR: { $avg: "$riskReward" },
+
+          // Per-trade array for equity curve + P&L bars
+          tradeSnapshots: {
+            $push: {
+              id: "$_id",
+              entryTime: "$entryTime",
+              exitTime: "$exitTime",
+              direction: "$direction",
+              entryPrice: "$entryPrice",
+              exitPrice: "$exitPrice",
+              stopLoss: "$stopLoss",
+              takeProfit: "$takeProfit",
+              riskReward: "$riskReward",
+              profitLoss: "$derivedPnL", // ← derived, not raw field
+              profitLossPercent: "$profitLossPercent",
+              outcome: "$outcome",
+              setupType: "$setupType",
+              session: "$session",
+              notes: "$notes",
             },
           },
 
-          netProfit: { $sum: "$profitLoss" },
-
-          averageRR: { $avg: "$riskReward" },
+          pnlSequence: { $push: "$derivedPnL" }, // for equity curve reduce
         },
       },
 
-      // 5. derived metrics
+      // ── 7. Derived scalar stats ──
       {
         $addFields: {
           winRate: {
@@ -82,15 +128,6 @@ export async function getBacktestStats(req: NextRequest, id: string) {
               { $multiply: [{ $divide: ["$wins", "$totalTrades"] }, 100] },
             ],
           },
-
-          lossRate: {
-            $cond: [
-              { $eq: ["$totalTrades", 0] },
-              0,
-              { $multiply: [{ $divide: ["$losses", "$totalTrades"] }, 100] },
-            ],
-          },
-
           profitFactor: {
             $cond: [
               { $eq: ["$grossLoss", 0] },
@@ -98,8 +135,8 @@ export async function getBacktestStats(req: NextRequest, id: string) {
               { $divide: ["$grossProfit", { $abs: "$grossLoss" }] },
             ],
           },
-
           expectancy: {
+            // (winRate * avgRR) - lossRate
             $cond: [
               { $eq: ["$totalTrades", 0] },
               0,
@@ -116,20 +153,26 @@ export async function getBacktestStats(req: NextRequest, id: string) {
               },
             ],
           },
+          // Total profit formula:  risk * avgRR * totalWins
+          totalProfit: {
+            $multiply: ["$riskPerTrade", "$averageRR", "$wins"],
+          },
         },
       },
 
-      // 6. edge logic
+      // ── 8. Edge logic ──
       {
         $addFields: {
           hasEdge: {
-            $and: [
-              { $gte: ["$winRate", 40] },
-              { $gte: ["$averageRR", 3] },
-              { $gt: ["$profitFactor", 1] },
+            $or: [
+              {
+                $and: [{ $gte: ["$winRate", 50] }, { $gte: ["$averageRR", 2] }],
+              },
+              {
+                $and: [{ $gte: ["$winRate", 40] }, { $gte: ["$averageRR", 3] }],
+              },
             ],
           },
-
           edgeScore: {
             $min: [
               100,
@@ -144,16 +187,122 @@ export async function getBacktestStats(req: NextRequest, id: string) {
           },
         },
       },
+
+      // ── 9. Build equity curve via running sum over pnlSequence ──
+      // Start point = initialBalance, each step adds derivedPnL for that trade
+      {
+        $addFields: {
+          equityCurveRaw: {
+            $reduce: {
+              input: "$pnlSequence",
+              initialValue: {
+                curve: [{ $ifNull: ["$initialBalance", 10000] }],
+                running: { $ifNull: ["$initialBalance", 10000] },
+              },
+              in: {
+                curve: {
+                  $concatArrays: [
+                    "$$value.curve",
+                    [{ $add: ["$$value.running", "$$this"] }],
+                  ],
+                },
+                running: { $add: ["$$value.running", "$$this"] },
+              },
+            },
+          },
+        },
+      },
+
+      // ── 10. Flatten curve, finalBalance, maxDrawdown ──
+      {
+        $addFields: {
+          equityCurve: "$equityCurveRaw.curve",
+          finalBalance: { $add: ["$initialBalance", "$netProfit"] },
+
+          maxDrawdown: {
+            $let: {
+              vars: {
+                dd: {
+                  $reduce: {
+                    input: "$equityCurveRaw.curve",
+                    initialValue: { peak: 0, maxDD: 0 },
+                    in: {
+                      peak: { $max: ["$$value.peak", "$$this"] },
+                      maxDD: {
+                        $max: [
+                          "$$value.maxDD",
+                          {
+                            $cond: [
+                              { $gt: ["$$value.peak", 0] },
+                              {
+                                $multiply: [
+                                  {
+                                    $divide: [
+                                      {
+                                        $subtract: ["$$value.peak", "$$this"],
+                                      },
+                                      "$$value.peak",
+                                    ],
+                                  },
+                                  100,
+                                ],
+                              },
+                              0,
+                            ],
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+              in: "$$dd.maxDD",
+            },
+          },
+        },
+      },
+
+      // ── 11. Equity labels: ["Start", "T1", "T2" …] ──
+      {
+        $addFields: {
+          equityLabels: {
+            $map: {
+              input: { $range: [0, { $size: "$equityCurve" }] },
+              as: "i",
+              in: {
+                $cond: [
+                  { $eq: ["$$i", 0] },
+                  "Start",
+                  { $concat: ["T", { $toString: "$$i" }] },
+                ],
+              },
+            },
+          },
+          // rename for clean API response
+          trades: "$tradeSnapshots",
+        },
+      },
+
+      // ── 12. Strip internals ──
+      {
+        $project: {
+          equityCurveRaw: 0,
+          pnlSequence: 0,
+          tradeSnapshots: 0,
+        },
+      },
     ]);
 
     return NextResponse.json(stats[0] || {});
   } catch (error) {
+    console.error("Stats calculation failed:", error);
     return NextResponse.json(
       { message: "Stats calculation failed" },
       { status: 500 },
     );
   }
 }
+
 export async function createBacktest(req: NextRequest) {
   try {
     const body = await req.json();
@@ -200,7 +349,10 @@ export async function getBacktests(req: NextRequest) {
 
 export async function getBacktestById(req: NextRequest, id: string) {
   try {
-    const backtest = await Backtest.findById(id).lean();
+    const backtest = await Backtest.findById(id)
+      .populate("tradingPlanId")
+      .populate("pair")
+      .lean();
 
     if (!backtest) {
       return NextResponse.json(
@@ -339,16 +491,15 @@ export async function getOverviewStats(req: NextRequest) {
       // derived metrics
       {
         $addFields: {
-          winRate: {
-            $cond: [
-              { $eq: ["$totalTrades", 0] },
-              0,
-              { $multiply: [{ $divide: ["$wins", "$totalTrades"] }, 100] },
+          hasRuleEdge: {
+            $or: [
+              {
+                $and: [{ $gte: ["$winRate", 50] }, { $gte: ["$averageRR", 2] }],
+              },
+              {
+                $and: [{ $gte: ["$winRate", 40] }, { $gte: ["$averageRR", 3] }],
+              },
             ],
-          },
-
-          hasEdge: {
-            $and: [{ $gte: ["$winRate", 40] }, { $gte: ["$avgRR", 3] }],
           },
 
           edgeScore: {
@@ -356,16 +507,17 @@ export async function getOverviewStats(req: NextRequest) {
               100,
               {
                 $add: [
-                  { $multiply: ["$winRate", 0.4] },
-                  { $multiply: ["$avgRR", 20] },
+                  { $multiply: ["$winRate", 0.3] },
+                  { $multiply: ["$averageRR", 25] },
+                  { $multiply: ["$profitFactor", 25] },
                 ],
               },
             ],
           },
         },
       },
-
       // final shape
+
       {
         $project: {
           _id: 1,

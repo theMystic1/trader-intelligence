@@ -34,7 +34,7 @@ export default function BacktestOverviewTable({
         </TableHeadWithRow>
 
         <TableBody>
-          {backtestData.map((bt) => (
+          {backtestData?.map((bt) => (
             <TableRow key={bt._id}>
               <TableCell className="font-semibold text-white">
                 {bt.pair?.pairName}

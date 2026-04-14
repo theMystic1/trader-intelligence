@@ -4,65 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BacktestOverviewTable from "./overview-table";
 import BacktestModal from "./modals/backtest-modal";
-import {
-  useBacktests,
-  useBacktestStats,
-  useOverviewStats,
-} from "@/hooks/useBacktests";
+import { useBacktests, useOverviewStats } from "@/hooks/useBacktests";
 import AdminDashboardSkeleton from "@/app/loading";
 import { formatDate } from "@/lib/helpers";
 
 /* ──────────────────────────────────────────
    DUMMY DATA (matches your schema output)
 ────────────────────────────────────────── */
-
-const MOCK_BACKTESTS = [
-  {
-    _id: "1",
-    pair: { name: "EURUSD" },
-    timeframe: "1H",
-    startDate: "2024-01-01",
-    endDate: "2024-01-30",
-    status: "completed",
-
-    totalTrades: 48,
-    winRate: 42.5,
-    avgRR: 3.2,
-    netProfit: 2300,
-    hasEdge: true,
-    edgeScore: 72,
-  },
-  {
-    _id: "2",
-    pair: { name: "GBPJPY" },
-    timeframe: "15M",
-    startDate: "2024-02-01",
-    endDate: "2024-02-15",
-    status: "completed",
-
-    totalTrades: 36,
-    winRate: 33.2,
-    avgRR: 2.1,
-    netProfit: -800,
-    hasEdge: false,
-    edgeScore: 38,
-  },
-  {
-    _id: "3",
-    pair: { name: "XAUUSD" },
-    timeframe: "5M",
-    startDate: "2024-03-01",
-    endDate: "2024-03-10",
-    status: "running",
-
-    totalTrades: 20,
-    winRate: 50.0,
-    avgRR: 2.8,
-    netProfit: 900,
-    hasEdge: false,
-    edgeScore: 55,
-  },
-];
 
 /* ──────────────────────────────────────────
    COMPONENTS
@@ -151,28 +99,27 @@ export default function BacktestsPage() {
   const { overviewStats, isLoadingOverviewStats, refetchOverviewStats } =
     useOverviewStats();
 
-  let data = [...MOCK_BACKTESTS];
-
   /* FILTER */
-  data = data.filter((bt) => {
-    if (filter === "edge") return bt.hasEdge;
-    if (filter === "no-edge") return !bt.hasEdge;
-    return true;
-  });
-
-  /* SORT (SMART DEFAULT) */
-  data.sort((a, b) => {
-    if (a.hasEdge !== b.hasEdge) return b.hasEdge ? 1 : -1;
-    if (a.edgeScore !== b.edgeScore) return b.edgeScore - a.edgeScore;
-    return b.netProfit - a.netProfit;
-  });
 
   if (isLoadingBacktests || isLoadingOverviewStats)
     return <AdminDashboardSkeleton />;
 
   const backtestData = backtests?.data ?? backtests;
 
-  console.log(overviewStats);
+  const filteredBacktests = backtestData?.filter((bt: any) => {
+    if (filter === "edge") return bt.hasEdge;
+    if (filter === "no-edge") return !bt.hasEdge;
+    return true;
+  });
+
+  /* SORT (SMART DEFAULT) */
+  filteredBacktests?.sort((a: any, b: any) => {
+    if (a.hasEdge !== b.hasEdge) return b.hasEdge ? 1 : -1;
+    if (a.edgeScore !== b.edgeScore) return b.edgeScore - a.edgeScore;
+    return b.netProfit - a.netProfit;
+  });
+
+  // console.log(backtestData);
   return (
     <div className="min-h-screen bg-[#0f1117] px-6 py-8">
       <div className="max-w-7xl mx-auto">
@@ -194,7 +141,7 @@ export default function BacktestsPage() {
         </div>
 
         {/* FILTERS */}
-        <div className="flex items-center gap-2 mb-6">
+        {/*<div className="flex items-center gap-2 mb-6">
           {["all", "edge", "no-edge"].map((f) => (
             <button
               key={f}
@@ -208,10 +155,10 @@ export default function BacktestsPage() {
               {f === "edge" ? "Edge Only" : f === "no-edge" ? "No Edge" : "All"}
             </button>
           ))}
-        </div>
+        </div>*/}
 
         {/* GRID */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/*<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {overviewStats?.data.map((bt: any) => (
             <BacktestCard
               key={bt._id}
@@ -219,10 +166,10 @@ export default function BacktestsPage() {
               onClick={() => router.push(`/backtests/${bt._id}`)}
             />
           ))}
-        </div>
+        </div>*/}
 
         {/* EMPTY */}
-        {backtestData.length === 0 ? (
+        {backtestData?.length === 0 ? (
           <div className="text-center text-gray-500 mt-10">
             No backtests found.
           </div>
