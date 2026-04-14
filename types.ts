@@ -1,0 +1,146 @@
+import mongoose from "mongoose";
+
+export type UserType = {
+  _id?: string;
+  username: string;
+  email: string;
+  password?: string;
+  emailVerified?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  token?: string;
+  signinTokenExpires?: Date;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+};
+
+export type UserMethods = {
+  comparePassword: (candidatePassword: string) => Promise<boolean>;
+  generateOTP: (forgotPass?: boolean) => string;
+  verifyOTP: (otp: string, forgotPass?: boolean) => Promise<boolean>;
+};
+
+export type TradingPlanType = {
+  _id?: string;
+  userId?: string;
+  name: string;
+  description?: string;
+  pairs:
+    | string[]
+    | {
+        value: string;
+        id: string;
+      }[];
+  timeframes: {
+    htf: string[];
+    mtf: string[];
+    ltf: string[];
+  };
+  strategy: {
+    name: string;
+    description?: string;
+    indicators: string[];
+  };
+  tradingRules: string[];
+  riskManagement: {
+    riskPerTrade: number;
+    minimumRiskReward: string;
+    maxTradePerDay: number;
+    maxDailyLoss: number;
+  };
+  tradeManagement: string[];
+  traderType: string;
+};
+
+export type InstrumentCategory =
+  | "forex"
+  | "crypto"
+  | "stocks"
+  | "indices"
+  | "commodities"
+  | "bonds"
+  | "etfs";
+
+export type InstrumentType = {
+  _id?: string;
+  category: InstrumentCategory;
+  pairName: string;
+  base?: string;
+  quote?: string;
+  description?: string;
+};
+
+export type SortKey = keyof Trade;
+export type SortDir = "asc" | "desc";
+export type Outcome = "win" | "loss" | "breakeven";
+export type Direction = "buy" | "sell";
+
+export interface Trade {
+  id: number;
+  entryTime: string;
+  exitTime: string;
+  direction: Direction;
+  entryPrice: number;
+  exitPrice: number;
+  stopLoss: number;
+  takeProfit: number;
+  riskReward: number;
+  profitLoss: number;
+  profitLossPercent: number;
+  outcome: Outcome;
+  setupType: string;
+  session: string;
+  notes: string;
+}
+
+export type IBacktestDocument = {
+  _id: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  initialBalance: number;
+  tradingPlanId: mongoose.Types.ObjectId;
+  name: string;
+  pair: mongoose.Types.ObjectId;
+  timeframe: string;
+  startDate: Date;
+  endDate: Date;
+  totalTrades: number;
+  wins: number;
+  losses: number;
+  breakeven: number;
+  winRate: number;
+  netProfit: number;
+  grossProfit: number;
+  grossLoss: number;
+  profitFactor: number;
+  expectancy: number;
+  maxDrawdown: number;
+  averageRR: number;
+  finalBalance: number;
+  hasEdge: boolean;
+  edgeScore: number;
+  status: "draft" | "running" | "completed" | "archived";
+  riskPerTrade: number;
+};
+
+export type BacktestStatus = "running" | "completed";
+
+export type BacktestType = {
+  _id?: string;
+
+  userId?: any; // or User if populated
+  tradingPlanId: any; // or TradingPlan if populated
+  pair: any; // or Instrument if populated
+
+  timeframe: string; // "5m", "15m", "1H", etc.
+
+  startDate?: string;
+  endDate?: string;
+
+  initialBalance: number;
+  riskPerTrade: number;
+
+  status: BacktestStatus;
+
+  createdAt?: string;
+  updatedAt?: string;
+};
