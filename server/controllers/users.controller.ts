@@ -309,3 +309,32 @@ export const protect = (handler: Function) => {
     }
   };
 };
+
+export const getMe = async (req: NextRequest) => {
+  try {
+    const userId = (req as any).user?._id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { message: "Not authenticated" },
+        { status: 401 },
+      );
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { message: "User no longer exists" },
+        { status: 401 },
+      );
+    }
+
+    return NextResponse.json({ data: user }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json(
+      { message: "Failed to get user" },
+      { status: 500 },
+    );
+  }
+};

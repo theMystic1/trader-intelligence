@@ -33,3 +33,5 @@ export const handleChangePassword = async (payload: {
     `${baseUrl}/changePassword`,
     payload,
   );
+
+export const handleGetMe = async () => get(`/api/user`);

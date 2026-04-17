@@ -3,20 +3,18 @@
 import LandingsPage from "@/components/landing/landing-2";
 import Landing from "@/components/landing/landing-page";
 
-// Project: Trading Intelligence Platform (UI-First V1)
-// Stack: Next.js (App Router) + TailwindCSS + Zustand
-// Note: This is a structured scaffold with dummy data and clean separation
+import type { Metadata } from "next";
 
-// =========================
-// 1. APP LAYOUT
-// =========================
-
-// app/layout.tsx
-
-// =========================
-// 2. DASHBOARD PAGE
-// =========================
-
+export const metadata: Metadata = {
+  title: "Smarter Trading Starts Here",
+  description:
+    "Journal trades, backtest strategies, and improve performance with data-driven trading intelligence tools.",
+  openGraph: {
+    title: "Trading Intelligence",
+    description:
+      "The modern platform for traders to journal, analyze, and improve performance.",
+  },
+};
 const LandingPage = () => {
   return <LandingsPage />;
 };

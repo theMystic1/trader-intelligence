@@ -245,3 +245,212 @@ export const ALL_INSTRUMENTS: InstrumentType[] = [
   ...INDICES,
   ...COMMODITIES,
 ];
+
+export const JOURNAL_SEED = [
+  {
+    date: new Date("2026-04-01"),
+    pair: "EURUSD",
+    type: "LONG",
+    entryCriteria:
+      "Liquidity sweep below Asian low followed by reclaim of bullish order block on M15",
+    entryConfirmation:
+      "Bullish engulfing candle + break of minor structure on 5M",
+    session: "London",
+    exitTime: "10:45",
+    tradeOutcome: "TP",
+    tradeManagement:
+      "Entered with full position size, moved SL to breakeven after +1R, partials taken at +2R and final TP hit at +3R",
+    riskReward: "1:3",
+    mistakes: [],
+    rightDeeds: [
+      "Waited for sweep",
+      "Followed execution plan",
+      "Good patience",
+    ],
+    feelings: ["Confident", "Focused"],
+    note: "This was a textbook liquidity sweep setup. Price took out early Asian lows, induced sellers, then sharply reversed into a clean bullish displacement. Entry timing was precise and aligned with higher timeframe bullish bias. Execution felt effortless and in flow state.",
+  },
+
+  {
+    date: new Date("2026-04-02"),
+    pair: "GBPUSD",
+    type: "SHORT",
+    entryCriteria:
+      "Resistance zone formed from previous day high with visible inefficiency and bearish order block confluence",
+    entryConfirmation:
+      "Pin bar rejection on H1 followed by lower timeframe bearish structure break",
+    session: "London",
+    exitTime: "12:10",
+    tradeOutcome: "SL",
+    tradeManagement:
+      "Entered early without full confirmation, did not adjust stop despite momentum shift",
+    riskReward: "1:2",
+    mistakes: [
+      "Entered before confirmation",
+      "Ignored bullish divergence on lower timeframe",
+    ],
+    rightDeeds: [],
+    feelings: ["Frustrated", "Impatient"],
+    note: "This trade was emotionally driven. I anticipated the reversal instead of waiting for confirmation. Price initially respected resistance but failed to continue downward due to stronger underlying bullish momentum. Early entry caused unnecessary loss.",
+  },
+
+  {
+    date: new Date("2026-04-03"),
+    pair: "XAUUSD",
+    type: "LONG",
+    entryCriteria:
+      "Deep retracement into institutional demand zone aligned with 4H bullish trend continuation",
+    entryConfirmation:
+      "Break of structure on M15 with strong displacement candle and volume spike",
+    session: "NY",
+    exitTime: "15:30",
+    tradeOutcome: "TP",
+    tradeManagement:
+      "Scaled in two entries, partials at +1.5R and final exit at +4R after extended trend continuation",
+    riskReward: "1:4",
+    mistakes: [],
+    rightDeeds: [
+      "Excellent execution timing",
+      "Followed multi-timeframe alignment",
+      "Good scaling strategy",
+    ],
+    feelings: ["Calm", "Confident"],
+    note: "Gold respected higher timeframe demand perfectly. The entry was confirmed by strong displacement and momentum shift. This was a high-quality institutional setup with clean continuation structure.",
+  },
+
+  {
+    date: new Date("2026-04-04"),
+    pair: "USDJPY",
+    type: "SHORT",
+    entryCriteria:
+      "Potential reversal at premium pricing after extended bullish leg into HTF resistance",
+    entryConfirmation:
+      "Lower high formation with weak bullish follow-through on M30",
+    session: "Asian",
+    exitTime: "06:50",
+    tradeOutcome: "BE",
+    tradeManagement: "Moved SL to breakeven too early after minor pullback",
+    riskReward: "1:2",
+    mistakes: ["Over-managed position", "Exited too early due to fear"],
+    rightDeeds: ["Protected capital"],
+    feelings: ["Neutral", "Uncertain"],
+    note: "Setup had validity but lacked strong momentum confirmation. Early risk management resulted in missed opportunity. Market eventually moved in anticipated direction but without me in the trade.",
+  },
+
+  {
+    date: new Date("2026-04-05"),
+    pair: "EURUSD",
+    type: "SHORT",
+    entryCriteria:
+      "Liquidity grab above previous day high with bearish bias from HTF resistance zone",
+    entryConfirmation: "Bearish engulfing on M15 after failed breakout attempt",
+    session: "London",
+    exitTime: "11:20",
+    tradeOutcome: "SL",
+    tradeManagement:
+      "Held full position without adjustment despite structural shift",
+    riskReward: "1:3",
+    mistakes: ["Ignored higher timeframe bullish pressure"],
+    rightDeeds: [],
+    feelings: ["Annoyed", "Overconfident"],
+    note: "Market invalidated bearish bias after stronger than expected bullish continuation. Entry was technically valid but contextually weak due to HTF momentum against position.",
+  },
+
+  {
+    date: new Date("2026-04-06"),
+    pair: "BTCUSD",
+    type: "LONG",
+    entryCriteria:
+      "Range expansion after prolonged consolidation with institutional accumulation signals",
+    entryConfirmation: "Volume breakout + bullish structure shift on M15",
+    session: "NY",
+    exitTime: "18:00",
+    tradeOutcome: "TP",
+    tradeManagement: "Held full position to completion of breakout leg",
+    riskReward: "1:5",
+    mistakes: [],
+    rightDeeds: [
+      "Waited for breakout confirmation",
+      "Did not exit early despite volatility",
+    ],
+    feelings: ["Excited", "Engaged"],
+    note: "Crypto volatility created strong directional expansion. Entry aligned with accumulation breakout phase. Momentum carried price cleanly through multiple resistance levels.",
+  },
+
+  {
+    date: new Date("2026-04-07"),
+    pair: "AUDUSD",
+    type: "LONG",
+    entryCriteria:
+      "Double bottom formation at HTF support with visible liquidity pool below lows",
+    entryConfirmation:
+      "Small bullish rejection candle followed by minor BOS on M5",
+    session: "Asian",
+    exitTime: "04:30",
+    tradeOutcome: "BE",
+    tradeManagement:
+      "Stop moved aggressively to breakeven due to fear of reversal",
+    riskReward: "1:2",
+    mistakes: ["Over-tight stop management", "Lack of patience"],
+    rightDeeds: ["Protected capital"],
+    feelings: ["Impatient", "Cautious"],
+    note: "Trade had valid structure but was managed too tightly. Market wicked into liquidity before moving upward without me. Psychological interference affected outcome.",
+  },
+
+  {
+    date: new Date("2026-04-08"),
+    pair: "GBPJPY",
+    type: "SHORT",
+    entryCriteria:
+      "Trendline rejection combined with overextended bullish move into resistance",
+    entryConfirmation:
+      "Bearish engulfing on H1 with weak bullish follow-through",
+    session: "London",
+    exitTime: "09:55",
+    tradeOutcome: "SL",
+    tradeManagement: "No adjustments made during adverse movement",
+    riskReward: "1:3",
+    mistakes: ["Forced trade", "Entered without full confluence"],
+    rightDeeds: [],
+    feelings: ["Doubtful", "Frustrated"],
+    note: "Entry lacked strong institutional confirmation. Market structure remained bullish and invalidated short bias quickly.",
+  },
+
+  {
+    date: new Date("2026-04-09"),
+    pair: "EURJPY",
+    type: "LONG",
+    entryCriteria:
+      "Break of market structure followed by retracement into bullish order block",
+    entryConfirmation:
+      "Strong rejection candle on M15 with displacement continuation",
+    session: "London",
+    exitTime: "13:10",
+    tradeOutcome: "TP",
+    tradeManagement: "Scaled out partially at +2R, final TP at +3R",
+    riskReward: "1:3",
+    mistakes: [],
+    rightDeeds: ["Followed structure", "Executed patiently"],
+    feelings: ["Focused", "Stable"],
+    note: "Clean continuation trade after structural shift. Entry aligned with institutional flow and was executed with discipline.",
+  },
+
+  {
+    date: new Date("2026-04-10"),
+    pair: "NAS100",
+    type: "SHORT",
+    entryCriteria:
+      "Overextended bullish move into weekly resistance with divergence forming on RSI",
+    entryConfirmation:
+      "Bearish rejection on M15 with weak continuation candles",
+    session: "NY",
+    exitTime: "17:40",
+    tradeOutcome: "BE",
+    tradeManagement: "Partial profits taken early, rest stopped at breakeven",
+    riskReward: "1:2",
+    mistakes: [],
+    rightDeeds: ["Good partial management", "Reduced risk early"],
+    feelings: ["Calm"],
+    note: "Market lacked strong directional conviction. Price consolidated after rejection instead of trending, leading to breakeven exit.",
+  },
+];

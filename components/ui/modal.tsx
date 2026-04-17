@@ -29,7 +29,7 @@ export const Modal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* backdrop */}
       <div
         onClick={onClose}
@@ -38,14 +38,16 @@ export const Modal = ({
 
       {/* modal */}
       <div
-        className={`relative w-full ${size === "lg" ? "max-w-2xl" : "max-w-100"} mx-4 rounded-2xl bg-[#0B0F19] border border-white/10 shadow-2xl overflow-hidden`}
+        style={{ maxHeight: "90vh" }}
+        className={`relative w-full ${
+          size === "lg" ? "max-w-2xl" : "max-w-sm"
+        } flex flex-col rounded-2xl bg-[#0B0F19] border border-white/10 shadow-2xl overflow-hidden`}
       >
         {/* header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">
           <h2 className="text-white font-semibold text-sm tracking-wide">
             {title || "Select Instrument"}
           </h2>
-
           <button
             onClick={onClose}
             className="text-white/60 hover:text-white transition"
@@ -55,7 +57,7 @@ export const Modal = ({
         </div>
 
         {/* body */}
-        <div className="p-4">{children}</div>
+        <div className="p-4 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );

@@ -192,22 +192,23 @@ const BacktestModal = ({
             </div>
 
             <button
-              className="w-full bg-blue-600 text-white py-2 px-3 rounded-lg"
+              className="w-full bg-blue-600 text-white py-2 px-3 rounded-lg flex items-center justify-center gap-1"
               onClick={handleSubmit}
             >
               {isLoading ? (
                 <>
                   <svg
-                    width="14"
-                    height="14"
+                    className="animate-spin"
+                    width="15"
+                    height="15"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
                   >
-                    <polyline points="20 6 9 17 4 12" />
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                   </svg>
-                  Saving...
+                  <span> Saving...</span>
                 </>
               ) : (
                 "Save"

@@ -3,11 +3,26 @@
 import { links, navItems } from "@/lib/constants";
 import { Icon } from "../dashboard/dashboard/Dashboard";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useMe } from "@/hooks/useMe";
+import cookies from "js-cookie";
 
 const Sidebar = () => {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href;
+  const router = useRouter();
+  const { me, isLoadingMe, refetchMe } = useMe();
+
+  // console.log(me);
+  //
+  //
+  const handleLogout = () => {
+    cookies.remove(process.env.NEXT_PUBLIC_ACCESS_TOKEN!);
+
+    router.push("/login");
+  };
+
+  const user = me?.data;
   return (
     <aside className=" hidden lg:flex w-52 bg-[#131620] border-r border-[#1e2330]  flex-col">
       <div className=" py-6 h-screen flex flex-col justify-between fixed top-0 left-0 bottom-0">
@@ -45,21 +60,28 @@ const Sidebar = () => {
 
         {/* Footer */}
         <div className="mt-auto border-t border-[#1e2330] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-[#374151] flex items-center justify-center text-sm font-semibold text-[#9ca3af] flex-shrink-0">
-              LC
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-[#e2e8f0]">
-                Lucky Chukw...
+          {isLoadingMe ? (
+            <div className="italics">loading usier data</div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-[#374151] flex items-center justify-center text-sm font-semibold text-[#9ca3af] flex-shrink-0 uppercase">
+                {user?.username?.split("")[0]}
               </div>
-              <div className="text-xs text-[#6b7280]">cluckyugo@gmail.com</div>
+              <div>
+                <div className="text-sm font-semibold text-[#e2e8f0] uppercase">
+                  {user?.username}
+                </div>
+                <div className="text-xs text-[#6b7280]">{user?.email}</div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center justify-center py-2 rounded-sm bg-red-500 gap-2 text-white text-sm cursor-pointer">
+          )}
+          <button
+            className="flex items-center justify-center py-2 px-4 rounded-sm bg-red-500 gap-2 text-white text-sm cursor-pointer mt-2 w-full"
+            onClick={handleLogout}
+          >
             <Icon name="signout" size={13} color="#ffff" />{" "}
             <span>Sign out</span>
-          </div>
+          </button>
         </div>
       </div>
     </aside>

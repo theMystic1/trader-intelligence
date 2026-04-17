@@ -144,3 +144,64 @@ export type BacktestType = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+export type TradingJournalype = {
+  _id?: string;
+  date: Date;
+  pair: string;
+  type: "LONG" | "SHORT";
+  entryCriteria: string;
+  entryConfirmation: string;
+  exitTime: string;
+  session: "NY" | "London" | "Asian";
+  riskReward: string;
+  tradeOutcome: "TP" | "SL" | "BE";
+  tradeManagement: string;
+  mistakes: string[];
+  rightDeeds: string[];
+  feelings?: string[];
+  note?: string;
+  userId?: string;
+};
+
+export interface FormState {
+  date: string;
+  pair: string;
+  type: TradeType;
+  session: Session;
+  exitTime: string;
+  tradeOutcome: TradeOutcome;
+  riskReward: string;
+  entryCriteria: string;
+  entryConfirmation: string;
+  tradeManagement: string;
+  mistakes: string[];
+  rightDeeds: string[];
+  feelings: string[];
+  note: string;
+  userId?: string;
+}
+
+export type TradeType = "LONG" | "SHORT";
+export type Session = "NY" | "London" | "Asian";
+export type TradeOutcome = "TP" | "SL" | "BE";
+export type Filter = "all" | TradeOutcome | TradeType;
+
+export interface JournalEntry {
+  _id?: string;
+  date: string;
+  pair: string;
+  type: TradeType;
+  entryCriteria: string;
+  entryConfirmation: string;
+  session: Session;
+  exitTime: string;
+  tradeOutcome: TradeOutcome;
+  tradeManagement: string;
+  riskReward: string;
+  mistakes: string[];
+  rightDeeds: string[];
+  feelings: string[];
+  note: string;
+  createdAt?: string;
+}

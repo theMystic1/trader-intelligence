@@ -1,4 +1,4 @@
-import { Trade } from "@/types";
+import { FormState, JournalEntry, Trade } from "@/types";
 
 export const tradeFeatures = [
   {
@@ -884,4 +884,100 @@ export const BULK_TRADES_LOSS = [
     session: "London",
     notes: "Immediate rejection",
   },
+];
+
+export const INITIAL_FORM: FormState = {
+  date: "",
+  pair: "",
+  type: "LONG",
+  session: "London",
+  exitTime: "",
+  tradeOutcome: "TP",
+  riskReward: "",
+  entryCriteria: "",
+  entryConfirmation: "",
+  tradeManagement: "",
+  mistakes: [],
+  rightDeeds: [],
+  feelings: [],
+  note: "",
+};
+
+export const FORM_STEPS = ["Trade Info", "Execution", "Psychology", "Notes"];
+
+export const MOCK: JournalEntry[] = [
+  {
+    _id: "1",
+    date: "2024-04-10",
+    pair: "EURUSD",
+    type: "LONG",
+    entryCriteria:
+      "BOS on 1H with fair value gap below, price tapped into discount",
+    entryConfirmation: "5m engulfing candle at OB, volume spike confirmation",
+    session: "London",
+    exitTime: "11:30",
+    tradeOutcome: "TP",
+    tradeManagement: "Moved SL to BE at 1R, held runner to 2R",
+    riskReward: "1:2",
+    mistakes: [],
+    rightDeeds: [
+      "Waited for confirmation",
+      "Followed the plan",
+      "Moved SL to BE",
+    ],
+    feelings: ["Confident", "Patient"],
+    note: "Clean trade. HTF bias was clear, LTF gave perfect entry.",
+    createdAt: "2024-04-10T11:30:00Z",
+  },
+  {
+    _id: "2",
+    date: "2024-04-09",
+    pair: "XAUUSD",
+    type: "SHORT",
+    entryCriteria: "EQH liquidity sweep above Asian high, bearish OB on 15m",
+    entryConfirmation: "MSS on 5m after sweep",
+    session: "NY",
+    exitTime: "15:45",
+    tradeOutcome: "SL",
+    tradeManagement: "Full position, no partials",
+    riskReward: "1:2.5",
+    mistakes: ["Entered too early", "Ignored HTF resistance"],
+    rightDeeds: ["Kept SL intact"],
+    feelings: ["Anxious", "Rushed"],
+    note: "News spike hit SL. Should have checked the economic calendar.",
+    createdAt: "2024-04-09T15:45:00Z",
+  },
+  {
+    _id: "3",
+    date: "2024-04-08",
+    pair: "GBPUSD",
+    type: "LONG",
+    entryCriteria: "Premium to discount shift, FVG on 1H",
+    entryConfirmation: "1H close above 0.5 fib with volume",
+    session: "London",
+    exitTime: "10:15",
+    tradeOutcome: "BE",
+    tradeManagement: "Moved SL to BE early, price came back and took BE",
+    riskReward: "1:0",
+    mistakes: ["Moved SL to BE too soon"],
+    rightDeeds: ["Identified the setup correctly"],
+    feelings: ["Calm", "Disciplined"],
+    note: "Good setup, poor management. Would have hit TP if SL wasn't moved.",
+    createdAt: "2024-04-08T10:15:00Z",
+  },
+];
+
+export const FEELINGS_OPTIONS = [
+  "Confident",
+  "Patient",
+  "Calm",
+  "Disciplined",
+  "Focused",
+  "Anxious",
+  "Rushed",
+  "Greedy",
+  "Fearful",
+  "Frustrated",
+  "FOMO",
+  "Overconfident",
 ];
