@@ -1,6 +1,6 @@
 import { resendToken } from "@/server/controllers/users.controller";
 import { NextRequest, NextResponse } from "next/server";
 
-export const POST = async (req: NextRequest, res: NextResponse, next: any) => {
-  return resendToken(req, res, next);
+export const POST = async (req: NextRequest) => {
+  return resendToken(req);
 };

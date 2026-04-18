@@ -238,7 +238,7 @@ export const INDICES = [
   { category: "indices", pairName: "VIX" },
 ];
 
-export const ALL_INSTRUMENTS: InstrumentType[] = [
+export const ALL_INSTRUMENTS = [
   ...FOREX,
   ...CRYPTO,
   ...STOCKS,

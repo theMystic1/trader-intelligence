@@ -46,21 +46,21 @@ export const getInstruments = async (req: NextRequest) => {
 
 export const seedInstrumentsData = async (req: NextRequest) => {
   try {
-    await Instrument.bulkWrite(
-      ALL_INSTRUMENTS.map((item) => ({
-        updateOne: {
-          // ✅ FIXED: only use stable unique keys
-          filter: {
-            category: item.category,
-            pairName: item.pairName,
-          },
-          update: {
-            $set: item,
-          },
-          upsert: true,
-        },
-      })),
-    );
+    // await Instrument.bulkWrite(
+    //   ALL_INSTRUMENTS.map((item) => ({
+    //     updateOne: {
+    //       // ✅ FIXED: only use stable unique keys
+    //       filter: {
+    //         category: item.category,
+    //         pairName: item.pairName,
+    //       },
+    //       update: {
+    //         $set: item,
+    //       },
+    //       upsert: true,
+    //     },
+    //   })),
+    // );
 
     return NextResponse.json(
       {
