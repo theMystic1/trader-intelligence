@@ -210,13 +210,13 @@ export default function TradingJournalPage() {
               </svg>
               New Entry
             </button>
-            <button
+            {/*<button
               onClick={handleSeed}
               disabled={saving}
               className="text-xs px-3 py-1.5 bg-amber-600 text-amber-100 rounded-lg border font-semibold uppercase"
             >
               {saving ? "Submitting..." : "Seed Dummy trades"}
-            </button>
+            </button>*/}
           </div>
         </div>
 

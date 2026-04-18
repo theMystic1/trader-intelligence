@@ -688,13 +688,13 @@ export default function BacktestPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            {/*<button
               onClick={handleSubmit}
               className="text-xs px-3 py-1.5 bg-amber-600 text-amber-100 rounded-lg border font-semibold uppercase"
               disabled={isLoading}
             >
               {isLoading ? "Submitting..." : " Seed Dummy trades"}
-            </button>
+            </button>*/}
             <span
               className={`text-xs px-3 py-1.5 rounded-lg border font-semibold uppercase ${
                 singleBt?.status === "completed"
