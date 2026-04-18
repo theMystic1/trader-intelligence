@@ -101,7 +101,7 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-600 outline-none"
+                  className="flex-1 bg-transparent  text-gray-200 placeholder-gray-600 outline-none"
                 />
               </div>
               {errors.email && (
@@ -142,7 +142,7 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-600 outline-none"
+                  className="flex-1 bg-transparent  text-gray-200 placeholder-gray-600 outline-none"
                 />
                 <button
                   type="button"

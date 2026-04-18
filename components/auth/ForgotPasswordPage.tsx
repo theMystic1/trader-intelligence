@@ -154,7 +154,7 @@ function RequestStep({ onSent }: { onSent: (email: string) => void }) {
                 setEmail(e.target.value);
                 setError("");
               }}
-              className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-600 outline-none"
+              className="flex-1 bg-transparent  text-gray-200 placeholder-gray-600 outline-none"
             />
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}

@@ -72,7 +72,7 @@ function InputField({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-600 outline-none"
+          className="flex-1 bg-transparent  text-gray-200 placeholder-gray-600 outline-none"
         />
         {showToggle && (
           <button
