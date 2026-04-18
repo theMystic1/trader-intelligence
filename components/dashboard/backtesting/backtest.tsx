@@ -653,12 +653,8 @@ export default function BacktestPage() {
           >
             ← Back
           </button>
-
-          <TradeLogModal
-            backtestId={singleBt?._id ?? ""}
-            onRefetch={refetchAll}
-          />
         </div>
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -695,15 +691,21 @@ export default function BacktestPage() {
             >
               {isLoading ? "Submitting..." : " Seed Dummy trades"}
             </button>*/}
-            <span
-              className={`text-xs px-3 py-1.5 rounded-lg border font-semibold uppercase ${
-                singleBt?.status === "completed"
-                  ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                  : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-              }`}
-            >
-              {singleBt?.status ?? "—"}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-xs px-3 py-1.5 rounded-lg border font-semibold uppercase ${
+                  singleBt?.status === "completed"
+                    ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                    : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                }`}
+              >
+                {singleBt?.status ?? "—"}
+              </span>
+              <TradeLogModal
+                backtestId={singleBt?._id ?? ""}
+                onRefetch={refetchAll}
+              />
+            </div>
           </div>
         </div>
 
