@@ -209,14 +209,14 @@ export default function LoginPage() {
           </form>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
+          {/*<div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px bg-[#1e2a3a]" />
             <span className="text-xs text-gray-600">or continue with</span>
             <div className="flex-1 h-px bg-[#1e2a3a]" />
-          </div>
+          </div>*/}
 
           {/* Social */}
-          <div className="grid grid-cols-2 gap-3">
+          {/*<div className="grid grid-cols-2 gap-3">
             {[
               {
                 label: "Google",
@@ -262,7 +262,7 @@ export default function LoginPage() {
                 {s.icon} {s.label}
               </button>
             ))}
-          </div>
+          </div>*/}
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Don&apos;t have an account?{" "}

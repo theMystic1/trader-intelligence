@@ -610,11 +610,15 @@ function EmptyDashboard() {
         Log trades to unlock charts, win rate, streaks, session analysis, and AI
         insights.
       </p>
+      <p className="mb-6 text-blue-500 font-bold italic text-sm">
+        But first create a winning plan, to guide your trades and maximize your
+        returns.
+      </p>
       <Link
-        href="/journal"
+        href="/trading-plan/new"
         className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
       >
-        Log your first trade →
+        Create trading plan →
       </Link>
     </div>
   );

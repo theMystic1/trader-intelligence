@@ -32,15 +32,6 @@ export const signup = async (req: NextRequest) => {
 
     // const await
 
-    await sendStaffWelcomeEmail({
-      to: email,
-      schoolName: "Trader Intelligence",
-      staffName: `${username}`,
-      email: email,
-      password: password,
-      portalUrl: process.env.PORTAL_LINK as string,
-    });
-
     // Send resetToken via email in real app
     await sendStaffVerificationCodeEmail({
       to: user.email,
@@ -195,6 +186,14 @@ export const signIn = async (req: NextRequest) => {
     // Remove password from output
     (user as any).password = undefined;
 
+    await sendStaffWelcomeEmail({
+      to: email,
+      schoolName: "Trader Intelligence",
+      staffName: `${user?.username}`,
+      email: email,
+      password: password,
+      portalUrl: process.env.PORTAL_LINK as string,
+    });
     return sendToken(token, user);
   } catch (error: unknown) {
     const formatted = handleMongooseError(error);

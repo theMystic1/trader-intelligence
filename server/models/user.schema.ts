@@ -11,7 +11,7 @@ const passwordValidationOption = {
   minNumbers: 1,
   minSymbols: 1,
 };
-
+// user.schema.ts — add these fields to your existing schema
 const userSchema = new mongoose.Schema<UserType>(
   {
     email: {
@@ -22,12 +22,14 @@ const userSchema = new mongoose.Schema<UserType>(
       trim: true,
       validate: [validator.isEmail, "Please provide a valid email"],
     },
-
     password: {
       type: String,
-      required: [true, "Please provide your password"],
+      // No longer required — OAuth users won't have one
       validate: [
-        (v: string) => validator.isStrongPassword(v, passwordValidationOption),
+        (v: string) => {
+          if (!v) return true; // skip validation for OAuth users
+          return validator.isStrongPassword(v, passwordValidationOption);
+        },
         "Please provide a strong password",
       ],
       select: false,
@@ -36,20 +38,31 @@ const userSchema = new mongoose.Schema<UserType>(
       type: String,
       trim: true,
       required: [true, "Please provide a username"],
-      unique: [true, "Username already exists"],
+      unique: true,
     },
     emailVerified: {
       type: Boolean,
       default: false,
     },
+    // ── OAuth fields ──
+    provider: {
+      type: String,
+      enum: ["credentials", "google", "github"],
+      default: "credentials",
+    },
+    providerId: {
+      type: String, // the OAuth provider's user ID
+    },
+    avatar: {
+      type: String, // profile picture URL from provider
+    },
+    // existing fields
     token: String,
     signinTokenExpires: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
 userSchema.pre("save", async function (next) {

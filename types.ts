@@ -12,6 +12,9 @@ export type UserType = {
   signinTokenExpires?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
+  provider?: string;
+  providerId?: string;
+  avatar?: string;
 };
 
 export type UserMethods = {
