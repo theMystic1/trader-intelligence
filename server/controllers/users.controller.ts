@@ -117,6 +117,14 @@ export const verifyOTP = async (req: NextRequest) => {
     // =========================
     const token = signToken(String(user._id));
 
+    await sendStaffWelcomeEmail({
+      to: email,
+      schoolName: "Trader Intelligence",
+      staffName: `${user?.username}`,
+      email: email,
+      password: "",
+      portalUrl: process.env.PORTAL_LINK as string,
+    });
     // =========================
     // SUCCESS RESPONSE
     // =========================
@@ -189,14 +197,6 @@ export const signIn = async (req: NextRequest) => {
     // Remove password from output
     (user as any).password = undefined;
 
-    await sendStaffWelcomeEmail({
-      to: email,
-      schoolName: "Trader Intelligence",
-      staffName: `${user?.username}`,
-      email: email,
-      password: password,
-      portalUrl: process.env.PORTAL_LINK as string,
-    });
     return sendToken(token, user);
   } catch (error: unknown) {
     const formatted = handleMongooseError(error);
