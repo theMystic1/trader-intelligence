@@ -205,3 +205,87 @@ export interface JournalEntry {
   note: string;
   createdAt?: string;
 }
+
+export interface DashboardData {
+  overview: OverviewStats;
+  journalCurve: JournalCurvePoint[];
+  outcomeBreakdown: OutcomeBreakdown;
+  sessionPerformance: SessionPerf[];
+  pairLeaderboard: PairStat[];
+  recentJournals: RecentJournal[];
+  backtestSummary: BacktestSummary;
+  streaks: StreakData;
+  planCount: number;
+}
+
+export interface OverviewStats {
+  totalJournals: number;
+  winRate: number;
+  totalTP: number;
+  totalSL: number;
+  totalBE: number;
+  avgRR: number;
+  bestPair: string;
+  activeBacktests: number;
+  completedBacktests: number;
+  totalBacktestTrades: number;
+}
+
+export interface JournalCurvePoint {
+  date: string;
+  cumulative: number; // running win count
+  tp: number;
+  sl: number;
+  be: number;
+}
+
+export interface OutcomeBreakdown {
+  tp: number;
+  sl: number;
+  be: number;
+  total: number;
+  winRate: number;
+}
+
+export interface SessionPerf {
+  session: string;
+  tp: number;
+  sl: number;
+  be: number;
+  total: number;
+  winRate: number;
+}
+
+export interface PairStat {
+  pair: string;
+  total: number;
+  tp: number;
+  sl: number;
+  winRate: number;
+  avgRR: string;
+}
+
+export interface RecentJournal {
+  _id: string;
+  date: string;
+  pair: string;
+  type: string;
+  tradeOutcome: string;
+  session: string;
+  riskReward: string;
+  feelings: string[];
+}
+
+export interface BacktestSummary {
+  total: number;
+  running: number;
+  completed: number;
+  avgWinRate: number;
+  totalTrades: number;
+}
+
+export interface StreakData {
+  currentWinStreak: number;
+  bestWinStreak: number;
+  currentLossStreak: number;
+}

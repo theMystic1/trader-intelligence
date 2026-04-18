@@ -1,4 +1,4 @@
-import { FormState, JournalEntry, Trade } from "@/types";
+import { DashboardData, FormState, JournalEntry, Trade } from "@/types";
 
 export const tradeFeatures = [
   {
@@ -112,11 +112,11 @@ export const cardIconColors: Record<string, { bg: string; stroke: string }> = {
 
 export const links = [
   { icon: "grid", title: "Dashboard", href: "/dashboard" },
-  {
-    icon: "plus",
-    title: "Trades",
-    href: "/trades",
-  },
+  // {
+  //   icon: "plus",
+  //   title: "Trades",
+  //   href: "/trades",
+  // },
   {
     icon: "link",
     title: "Trading Plan",
@@ -981,3 +981,109 @@ export const FEELINGS_OPTIONS = [
   "FOMO",
   "Overconfident",
 ];
+export const MOCKDashboard: DashboardData = {
+  overview: {
+    totalJournals: 48,
+    winRate: 58.3,
+    totalTP: 28,
+    totalSL: 14,
+    totalBE: 6,
+    avgRR: 2.4,
+    bestPair: "XAUUSD",
+    activeBacktests: 2,
+    completedBacktests: 3,
+    totalBacktestTrades: 180,
+  },
+  journalCurve: [
+    { date: "1 Jan", cumulative: 1, tp: 1, sl: 0, be: 0 },
+    { date: "3 Jan", cumulative: 2, tp: 1, sl: 0, be: 0 },
+    { date: "5 Jan", cumulative: 1, tp: 0, sl: 1, be: 0 },
+    { date: "7 Jan", cumulative: 2, tp: 1, sl: 0, be: 0 },
+    { date: "9 Jan", cumulative: 3, tp: 1, sl: 0, be: 0 },
+    { date: "11 Jan", cumulative: 2, tp: 0, sl: 1, be: 0 },
+    { date: "13 Jan", cumulative: 3, tp: 1, sl: 0, be: 0 },
+    { date: "15 Jan", cumulative: 4, tp: 1, sl: 0, be: 0 },
+    { date: "17 Jan", cumulative: 3, tp: 0, sl: 1, be: 0 },
+    { date: "19 Jan", cumulative: 4, tp: 1, sl: 0, be: 0 },
+    { date: "21 Jan", cumulative: 5, tp: 1, sl: 0, be: 0 },
+    { date: "23 Jan", cumulative: 5, tp: 0, sl: 0, be: 1 },
+    { date: "25 Jan", cumulative: 6, tp: 1, sl: 0, be: 0 },
+    { date: "27 Jan", cumulative: 7, tp: 1, sl: 0, be: 0 },
+    { date: "29 Jan", cumulative: 6, tp: 0, sl: 1, be: 0 },
+    { date: "31 Jan", cumulative: 7, tp: 1, sl: 0, be: 0 },
+  ],
+  outcomeBreakdown: { tp: 28, sl: 14, be: 6, total: 48, winRate: 58.3 },
+  sessionPerformance: [
+    { session: "London", tp: 14, sl: 6, be: 2, total: 22, winRate: 63.6 },
+    { session: "NY", tp: 10, sl: 5, be: 3, total: 18, winRate: 55.6 },
+    { session: "Asian", tp: 4, sl: 3, be: 1, total: 8, winRate: 50.0 },
+  ],
+  pairLeaderboard: [
+    { pair: "XAUUSD", total: 16, tp: 10, sl: 4, winRate: 62.5, avgRR: "2.8" },
+    { pair: "EURUSD", total: 14, tp: 8, sl: 4, winRate: 57.1, avgRR: "2.2" },
+    { pair: "GBPUSD", total: 10, tp: 6, sl: 3, winRate: 60.0, avgRR: "2.1" },
+    { pair: "NAS100", total: 5, tp: 3, sl: 2, winRate: 60.0, avgRR: "3.1" },
+    { pair: "USDJPY", total: 3, tp: 1, sl: 1, winRate: 33.3, avgRR: "1.8" },
+  ],
+  recentJournals: [
+    {
+      _id: "1",
+      date: "10 Apr 2024",
+      pair: "EURUSD",
+      type: "LONG",
+      tradeOutcome: "TP",
+      session: "London",
+      riskReward: "1:2",
+      feelings: ["Confident", "Patient"],
+    },
+    {
+      _id: "2",
+      date: "9 Apr 2024",
+      pair: "XAUUSD",
+      type: "SHORT",
+      tradeOutcome: "SL",
+      session: "NY",
+      riskReward: "1:2.5",
+      feelings: ["Anxious"],
+    },
+    {
+      _id: "3",
+      date: "8 Apr 2024",
+      pair: "GBPUSD",
+      type: "LONG",
+      tradeOutcome: "BE",
+      session: "London",
+      riskReward: "1:0",
+      feelings: ["Calm"],
+    },
+    {
+      _id: "4",
+      date: "7 Apr 2024",
+      pair: "XAUUSD",
+      type: "LONG",
+      tradeOutcome: "TP",
+      session: "NY",
+      riskReward: "1:3",
+      feelings: ["Confident", "Focused"],
+    },
+    {
+      _id: "5",
+      date: "5 Apr 2024",
+      pair: "NAS100",
+      type: "SHORT",
+      tradeOutcome: "TP",
+      session: "NY",
+      riskReward: "1:2",
+      feelings: ["Disciplined"],
+    },
+  ],
+  backtestSummary: {
+    total: 5,
+    running: 2,
+    completed: 3,
+    avgWinRate: 54.2,
+    totalTrades: 180,
+  },
+  streaks: { currentWinStreak: 3, bestWinStreak: 7, currentLossStreak: 0 },
+  planCount: 2,
+};

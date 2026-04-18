@@ -1,7 +1,6 @@
 "use client";
 
 import { JSX, useEffect, useState } from "react";
-import TradesTable from "../trades/trades-table";
 import ActionsSections from "./action-section";
 import GraphPieSection from "./graph";
 import Content from "./content";
@@ -25,10 +24,6 @@ export default function Dashboard() {
 
         {/* Action Cards */}
         <ActionsSections />
-
-        {/* Recent Trades */}
-
-        <TradesTable type="recent" />
       </div>
     </div>
   );

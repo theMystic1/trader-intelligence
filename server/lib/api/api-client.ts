@@ -6,7 +6,7 @@ export const getAuthToken = () => {
   return getToken();
 };
 
-console.log(getToken());
+// console.log(getToken())
 
 // -----------------------------
 // AXIOS INSTANCE
