@@ -857,7 +857,7 @@ export default function Dashboard() {
         sub="Aggregated across all backtests"
         action={
           <Link
-            href="/backtests"
+            href="/backtesting"
             className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
           >
             Manage →
