@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import TradingJournal from "../models/journal.schema";
 import APIFeatures from "../lib/api-features";
+import { dbConnect } from "../server";
 
 // CREATE JOURNAL
 export async function createJournal(req: NextRequest) {
   try {
+    const connected = await dbConnect();
     const body = await req.json();
 
     const journal = await TradingJournal.create({
@@ -25,6 +27,8 @@ export async function createJournal(req: NextRequest) {
 export async function getJournals(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+
+    const connected = await dbConnect();
 
     const queryString = Object.fromEntries(searchParams.entries());
 
@@ -131,6 +135,7 @@ export async function updateJournal(req: NextRequest, id: string) {
 // DELETE JOURNAL
 export async function deleteJournal(req: NextRequest, id: string) {
   try {
+    const connected = await dbConnect();
     const deleted = await TradingJournal.findByIdAndDelete(id);
 
     if (!deleted) {
@@ -154,6 +159,7 @@ export async function deleteJournal(req: NextRequest, id: string) {
 
 export const seedJournal = async (req: NextRequest) => {
   try {
+    const connected = await dbConnect();
     const { journals } = await req.json();
 
     const userId = (req as any)?.user?._id;

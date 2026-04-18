@@ -17,6 +17,7 @@ import {
   SessionPerf,
   StreakData,
 } from "../../types";
+import { dbConnect } from "../server";
 
 /* ──────────────────────────────────────────
    Main dashboard loader
@@ -25,6 +26,7 @@ export async function getDashboardData(req: NextRequest) {
   const userId = (req as any)?.user._id;
 
   try {
+    const connected = await dbConnect();
     const [
       overview,
       journalCurve,
@@ -77,6 +79,7 @@ export async function getDashboardData(req: NextRequest) {
 async function getOverviewStats(
   userId: mongoose.Types.ObjectId,
 ): Promise<OverviewStats> {
+  const connected = await dbConnect();
   const [agg, backtestStats, backtestTradeCount] = await Promise.all([
     TradingJournal.aggregate([
       { $match: { userId } },
@@ -162,6 +165,7 @@ async function getOverviewStats(
    Journal performance curve (last 30 entries)
 ────────────────────────────────────────── */
 async function getJournalCurve(userId: string): Promise<JournalCurvePoint[]> {
+  const connected = await dbConnect();
   const journals = await TradingJournal.find({ userId })
     .sort({ date: 1 })
     .limit(60)
@@ -191,6 +195,7 @@ async function getJournalCurve(userId: string): Promise<JournalCurvePoint[]> {
 async function getOutcomeBreakdown(
   userId: mongoose.Types.ObjectId,
 ): Promise<OutcomeBreakdown> {
+  const connected = await dbConnect();
   const [res] = await TradingJournal.aggregate([
     { $match: { userId } },
     {
@@ -216,6 +221,7 @@ async function getOutcomeBreakdown(
 async function getSessionPerformance(
   userId: mongoose.Types.ObjectId,
 ): Promise<SessionPerf[]> {
+  const connected = await dbConnect();
   const res = await TradingJournal.aggregate([
     { $match: { userId } },
     {
@@ -245,6 +251,7 @@ async function getSessionPerformance(
 async function getPairLeaderboard(
   userId: mongoose.Types.ObjectId,
 ): Promise<PairStat[]> {
+  const connected = await dbConnect();
   const res = await TradingJournal.aggregate([
     { $match: { userId } },
     {
@@ -283,6 +290,7 @@ async function getPairLeaderboard(
    Recent journals
 ────────────────────────────────────────── */
 async function getRecentJournals(userId: string): Promise<RecentJournal[]> {
+  const connected = await dbConnect();
   const journals = await TradingJournal.find({ userId })
     .sort({ createdAt: -1 })
     .limit(5)
@@ -311,6 +319,7 @@ async function getRecentJournals(userId: string): Promise<RecentJournal[]> {
 async function getBacktestSummary(
   userId: mongoose.Types.ObjectId,
 ): Promise<BacktestSummary> {
+  const connected = await dbConnect();
   const backtestIds = await Backtest.distinct("_id", { userId });
 
   const [bAgg, tradeAgg] = await Promise.all([
@@ -356,6 +365,7 @@ async function getBacktestSummary(
    Win/Loss streaks
 ────────────────────────────────────────── */
 async function getStreaks(userId: string): Promise<StreakData> {
+  const connected = await dbConnect();
   const journals = await TradingJournal.find({ userId })
     .sort({ date: -1 })
     .select("tradeOutcome")

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Backtest from "../models/backtesting.schema";
 import { BacktestTrade } from "../models/backtest-trade.schema";
+import { dbConnect } from "../server";
 
 export async function getBacktestStats(req: NextRequest, id: string) {
+  const connected = await dbConnect();
   try {
     const userId = (req as any)?.user?._id;
     const backtestId = new mongoose.Types.ObjectId(id);
@@ -306,7 +308,7 @@ export async function getBacktestStats(req: NextRequest, id: string) {
 export async function createBacktest(req: NextRequest) {
   try {
     const body = await req.json();
-
+    const connected = await dbConnect();
     const backtest = await Backtest.create({
       ...body,
       userId: (req as any).user._id,
@@ -327,6 +329,7 @@ export async function createBacktest(req: NextRequest) {
 
 export async function getBacktests(req: NextRequest) {
   try {
+    const connected = await dbConnect();
     const backtests = await Backtest.find({
       userId: (req as any).user._id,
     })
@@ -349,6 +352,7 @@ export async function getBacktests(req: NextRequest) {
 
 export async function getBacktestById(req: NextRequest, id: string) {
   try {
+    const connected = await dbConnect();
     const backtest = await Backtest.findById(id)
       .populate("tradingPlanId")
       .populate("pair")
@@ -381,7 +385,7 @@ export async function getBacktestById(req: NextRequest, id: string) {
 export async function updateBacktest(req: NextRequest, id: string) {
   try {
     const body = await req.json();
-
+    const connected = await dbConnect();
     const backtest = await Backtest.findByIdAndUpdate(id, body, {
       new: true,
     }).lean();
@@ -408,6 +412,7 @@ export async function deleteBacktest(id: string) {
   try {
     const backtestId = new mongoose.Types.ObjectId(id);
 
+    const connected = await dbConnect();
     const backtest = await Backtest.findByIdAndDelete(backtestId).lean();
 
     if (!backtest) {
@@ -435,6 +440,7 @@ export async function getOverviewStats(req: NextRequest) {
   try {
     const userId = (req as any)?.user?._id;
 
+    const connected = await dbConnect();
     const result = await Backtest.aggregate([
       {
         $match: {

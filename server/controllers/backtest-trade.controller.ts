@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { BacktestTrade } from "../models/backtest-trade.schema";
 import Backtest from "../models/backtesting.schema";
+import { dbConnect } from "../server";
 
 export async function logTrade(req: Request, id: string) {
   try {
@@ -56,7 +57,7 @@ export async function logTrade(req: Request, id: string) {
 export async function logTradesBulk(req: NextRequest, backtestId: string) {
   try {
     const body = await req.json();
-
+    const connected = await dbConnect();
     const backtest = await Backtest.findById(backtestId);
     if (!backtest) {
       return NextResponse.json(
@@ -103,6 +104,7 @@ export async function logTradesBulk(req: NextRequest, backtestId: string) {
 }
 export async function getBacktestTrades(id: string) {
   try {
+    const connected = await dbConnect();
     const trades = await BacktestTrade.find({
       backtestId: id,
     })
@@ -124,7 +126,7 @@ export async function getBacktestTrades(id: string) {
 export async function updateTrade(req: Request, tradeId: string) {
   try {
     const body = await req.json();
-
+    const connected = await dbConnect();
     const trade = await BacktestTrade.findByIdAndUpdate(tradeId, body, {
       new: true,
     }).lean();

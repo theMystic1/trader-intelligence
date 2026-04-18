@@ -3,9 +3,11 @@ import Instrument from "@/server/models/instrument.schema";
 import APIFeatures from "../lib/api-features";
 import { ALL_INSTRUMENTS } from "@/lib/pair-seed";
 import { handleMongooseError } from "../lib/app-error";
+import { dbConnect } from "../server";
 
 export const getInstruments = async (req: NextRequest) => {
   try {
+    const connected = await dbConnect();
     const { searchParams } = new URL(req.url);
 
     // convert URLSearchParams → object
@@ -46,6 +48,7 @@ export const getInstruments = async (req: NextRequest) => {
 
 export const seedInstrumentsData = async (req: NextRequest) => {
   try {
+    const connected = await dbConnect();
     // await Instrument.bulkWrite(
     //   ALL_INSTRUMENTS.map((item) => ({
     //     updateOne: {

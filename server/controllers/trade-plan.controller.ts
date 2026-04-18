@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import TradingPlan from "../models/trade-plan.schema";
+import { dbConnect } from "../server";
 
 export const createTradingPlan = async (req: NextRequest) => {
   try {
     const body = await req.json();
-
+    const connected = await dbConnect();
     const user = (req as any).user;
 
     const plan = await TradingPlan.create({
@@ -28,6 +29,8 @@ export const getTradingPlans = async (req: NextRequest) => {
   try {
     const user = (req as any).user;
 
+    const connected = await dbConnect();
+
     const plans = await TradingPlan.find({
       userId: user._id,
     }).populate("pairs");
@@ -48,7 +51,7 @@ export const getTradingPlans = async (req: NextRequest) => {
 export const getTradingPlanById = async (req: NextRequest, id: string) => {
   try {
     const user = (req as any).user;
-
+    const connected = await dbConnect();
     const plan = await TradingPlan.findById(id).populate("pairs");
 
     if (!plan) {
@@ -74,7 +77,7 @@ export const updateTradingPlan = async (req: NextRequest, id: string) => {
   try {
     const user = (req as any).user;
     const body = await req.json();
-
+    const connected = await dbConnect();
     const updated = await TradingPlan.findOneAndUpdate(
       {
         _id: id,
@@ -109,7 +112,7 @@ export const updateTradingPlan = async (req: NextRequest, id: string) => {
 export const deleteTradingPlan = async (req: NextRequest, id: string) => {
   try {
     const user = (req as any).user;
-
+    const connected = await dbConnect();
     const deleted = await TradingPlan.findOneAndDelete({
       _id: id,
       userId: user._id,

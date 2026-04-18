@@ -10,6 +10,7 @@ import User from "../models/user.schema";
 import crypto from "crypto";
 import Instrument from "../models/instrument.schema";
 import { ALL_INSTRUMENTS } from "@/lib/pair-seed";
+import { dbConnect } from "../server";
 
 export const signup = async (req: NextRequest) => {
   try {
@@ -17,7 +18,7 @@ export const signup = async (req: NextRequest) => {
     const body = await req.json();
     const { username, email, password } = body;
     // create a new user
-
+    const connected = await dbConnect();
     if (!username || !email || !password) {
       return NextResponse.json(
         { message: "Email, username and password are required fields" },
@@ -56,7 +57,7 @@ export const verifyOTP = async (req: NextRequest) => {
     const body = await req.json();
     const otp = body?.otp;
     const email = body?.email;
-
+    const connected = await dbConnect();
     // =========================
     // VALIDATION (MUST RETURN)
     // =========================
@@ -133,6 +134,8 @@ export const verifyOTP = async (req: NextRequest) => {
 export const resendToken = async (req: NextRequest) => {
   try {
     const { email } = await req.json();
+
+    const connected = await dbConnect();
     const user = await User.findOne({ email });
     if (!user)
       return NextResponse.json({ message: "User not found" }, { status: 404 });
@@ -159,7 +162,7 @@ export const resendToken = async (req: NextRequest) => {
 export const signIn = async (req: NextRequest) => {
   try {
     const { email, password } = await req.json();
-
+    const connected = await dbConnect();
     if (!email || !password)
       return NextResponse.json(
         { message: "Email & Password is required" },
@@ -204,7 +207,7 @@ export const signIn = async (req: NextRequest) => {
 export const forgotPassword = async (req: NextRequest) => {
   try {
     const { email } = await req.json();
-
+    const connected = await dbConnect();
     if (!email)
       return NextResponse.json(
         { message: "Email is required" },
@@ -240,7 +243,7 @@ export const forgotPassword = async (req: NextRequest) => {
 export const changePassword = async (req: NextRequest) => {
   try {
     const { otp, email, newPassword } = await req.json();
-
+    const connected = await dbConnect();
     if (!otp || !email || !newPassword)
       return NextResponse.json(
         { message: "OTP, email, and new password are required" },
@@ -271,7 +274,7 @@ export const protect = (handler: Function) => {
   return async (req: NextRequest, context?: any) => {
     try {
       const token = getBearerToken(req);
-
+      const connected = await dbConnect();
       // console.log(token);
 
       if (!token) {
@@ -312,7 +315,7 @@ export const protect = (handler: Function) => {
 export const getMe = async (req: NextRequest) => {
   try {
     const userId = (req as any).user?._id;
-
+    const connected = await dbConnect();
     if (!userId) {
       return NextResponse.json(
         { message: "Not authenticated" },
