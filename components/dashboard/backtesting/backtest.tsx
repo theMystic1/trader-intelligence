@@ -735,7 +735,7 @@ export default function BacktestPage() {
               />
               <StatCard
                 label="Avg R:R"
-                value={`${stats.averageRR.toFixed(2)}R`}
+                value={`${stats.averageRR}R`}
                 sub="per trade"
               />
               <StatCard
@@ -815,8 +815,8 @@ export default function BacktestPage() {
                         },
                         {
                           label: "Avg R:R",
-                          val: `${stats.averageRR.toFixed(2)}R`,
-                          ok: stats.averageRR >= 3,
+                          val: `${stats.averageRR}R`,
+                          ok: stats.averageRR && stats.averageRR >= 3,
                         },
                         {
                           label: "Profit Factor",

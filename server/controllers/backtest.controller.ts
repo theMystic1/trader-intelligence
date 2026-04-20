@@ -37,10 +37,44 @@ export async function getBacktestStats(req: NextRequest, id: string) {
       // ── 4. Sort chronologically ──
       { $sort: { entryTime: 1 } },
 
-      // ── 5. Inject derivedPnL per trade BEFORE grouping ──
-      // win  → +riskPerTrade * riskReward
-      // loss → -riskPerTrade
-      // BE   → 0
+      // ── 5A. Extract numeric RR from any format ──
+      {
+        $addFields: {
+          rrNumeric: {
+            $let: {
+              vars: { rr: "$riskReward" },
+              in: {
+                $cond: [
+                  // already a number
+                  {
+                    $in: [
+                      { $type: "$$rr" },
+                      ["double", "int", "long", "decimal"],
+                    ],
+                  },
+                  { $toDouble: "$$rr" },
+                  // string — check for colon
+                  {
+                    $cond: [
+                      { $gt: [{ $indexOfBytes: ["$$rr", ":"] }, -1] },
+                      // "1:2" → take part after colon
+                      {
+                        $toDouble: {
+                          $arrayElemAt: [{ $split: ["$$rr", ":"] }, 1],
+                        },
+                      },
+                      // plain numeric string "2.5"
+                      { $toDouble: "$$rr" },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+
+      // ── 5B. Compute derivedPnL using clean rrNumeric ──
       {
         $addFields: {
           derivedPnL: {
@@ -49,7 +83,7 @@ export async function getBacktestStats(req: NextRequest, id: string) {
                 {
                   case: { $eq: ["$outcome", "win"] },
                   then: {
-                    $multiply: ["$backtest.riskPerTrade", "$riskReward"],
+                    $multiply: ["$backtest.riskPerTrade", "$rrNumeric"],
                   },
                 },
                 {
@@ -57,7 +91,7 @@ export async function getBacktestStats(req: NextRequest, id: string) {
                   then: { $multiply: ["$backtest.riskPerTrade", -1] },
                 },
               ],
-              default: 0, // breakeven
+              default: 0,
             },
           },
           riskPerTrade: "$backtest.riskPerTrade",
@@ -75,29 +109,28 @@ export async function getBacktestStats(req: NextRequest, id: string) {
           totalTrades: { $sum: 1 },
 
           wins: { $sum: { $cond: [{ $eq: ["$outcome", "win"] }, 1, 0] } },
-          losses: { $sum: { $cond: [{ $eq: ["$outcome", "loss"] }, 1, 0] } },
+          losses: {
+            $sum: { $cond: [{ $eq: ["$outcome", "loss"] }, 1, 0] },
+          },
           breakevens: {
             $sum: { $cond: [{ $eq: ["$outcome", "breakeven"] }, 1, 0] },
           },
 
-          // Gross profit  = sum of all winning derivedPnL
           grossProfit: {
             $sum: {
               $cond: [{ $eq: ["$outcome", "win"] }, "$derivedPnL", 0],
             },
           },
-          // Gross loss = sum of all losing derivedPnL (negative number)
           grossLoss: {
             $sum: {
               $cond: [{ $eq: ["$outcome", "loss"] }, "$derivedPnL", 0],
             },
           },
-          // Net profit = grossProfit + grossLoss
           netProfit: { $sum: "$derivedPnL" },
 
-          averageRR: { $avg: "$riskReward" },
+          // numeric average — kept as number throughout
+          averageRRNum: { $avg: "$rrNumeric" },
 
-          // Per-trade array for equity curve + P&L bars
           tradeSnapshots: {
             $push: {
               id: "$_id",
@@ -108,8 +141,9 @@ export async function getBacktestStats(req: NextRequest, id: string) {
               exitPrice: "$exitPrice",
               stopLoss: "$stopLoss",
               takeProfit: "$takeProfit",
-              riskReward: "$riskReward",
-              profitLoss: "$derivedPnL", // ← derived, not raw field
+              riskReward: "$riskReward", // original display value
+              rrNumeric: "$rrNumeric", // numeric for table sorting
+              profitLoss: "$derivedPnL",
               profitLossPercent: "$profitLossPercent",
               outcome: "$outcome",
               setupType: "$setupType",
@@ -118,11 +152,18 @@ export async function getBacktestStats(req: NextRequest, id: string) {
             },
           },
 
-          pnlSequence: { $push: "$derivedPnL" }, // for equity curve reduce
+          pnlSequence: { $push: "$derivedPnL" },
         },
       },
 
-      // ── 7. Derived scalar stats ──
+      // ── 7. Round averageRRNum ──
+      {
+        $addFields: {
+          averageRRNum: { $round: ["$averageRRNum", 2] },
+        },
+      },
+
+      // ── 8. Derived scalar stats — all use averageRRNum (number) ──
       {
         $addFields: {
           winRate: {
@@ -130,6 +171,13 @@ export async function getBacktestStats(req: NextRequest, id: string) {
               { $eq: ["$totalTrades", 0] },
               0,
               { $multiply: [{ $divide: ["$wins", "$totalTrades"] }, 100] },
+            ],
+          },
+          lossRate: {
+            $cond: [
+              { $eq: ["$totalTrades", 0] },
+              0,
+              { $multiply: [{ $divide: ["$losses", "$totalTrades"] }, 100] },
             ],
           },
           profitFactor: {
@@ -140,7 +188,6 @@ export async function getBacktestStats(req: NextRequest, id: string) {
             ],
           },
           expectancy: {
-            // (winRate * avgRR) - lossRate
             $cond: [
               { $eq: ["$totalTrades", 0] },
               0,
@@ -149,7 +196,7 @@ export async function getBacktestStats(req: NextRequest, id: string) {
                   {
                     $multiply: [
                       { $divide: ["$wins", "$totalTrades"] },
-                      "$averageRR",
+                      "$averageRRNum", // ← number
                     ],
                   },
                   { $divide: ["$losses", "$totalTrades"] },
@@ -157,23 +204,28 @@ export async function getBacktestStats(req: NextRequest, id: string) {
               },
             ],
           },
-          // Total profit formula:  risk * avgRR * totalWins
           totalProfit: {
-            $multiply: ["$riskPerTrade", "$averageRR", "$wins"],
+            $multiply: ["$riskPerTrade", "$averageRRNum", "$wins"], // ← number
           },
         },
       },
 
-      // ── 8. Edge logic ──
+      // ── 9. Edge logic — all comparisons use averageRRNum (number) ──
       {
         $addFields: {
           hasEdge: {
             $or: [
               {
-                $and: [{ $gte: ["$winRate", 50] }, { $gte: ["$averageRR", 2] }],
+                $and: [
+                  { $gte: ["$winRate", 50] },
+                  { $gte: ["$averageRRNum", 2] }, // ← number
+                ],
               },
               {
-                $and: [{ $gte: ["$winRate", 40] }, { $gte: ["$averageRR", 3] }],
+                $and: [
+                  { $gte: ["$winRate", 40] },
+                  { $gte: ["$averageRRNum", 3] }, // ← number
+                ],
               },
             ],
           },
@@ -183,7 +235,7 @@ export async function getBacktestStats(req: NextRequest, id: string) {
               {
                 $add: [
                   { $multiply: ["$winRate", 0.4] },
-                  { $multiply: ["$averageRR", 20] },
+                  { $multiply: ["$averageRRNum", 20] }, // ← number
                   { $multiply: ["$profitFactor", 20] },
                 ],
               },
@@ -192,8 +244,7 @@ export async function getBacktestStats(req: NextRequest, id: string) {
         },
       },
 
-      // ── 9. Build equity curve via running sum over pnlSequence ──
-      // Start point = initialBalance, each step adds derivedPnL for that trade
+      // ── 10. Build equity curve ──
       {
         $addFields: {
           equityCurveRaw: {
@@ -217,12 +268,11 @@ export async function getBacktestStats(req: NextRequest, id: string) {
         },
       },
 
-      // ── 10. Flatten curve, finalBalance, maxDrawdown ──
+      // ── 11. Flatten curve + finalBalance + maxDrawdown ──
       {
         $addFields: {
           equityCurve: "$equityCurveRaw.curve",
           finalBalance: { $add: ["$initialBalance", "$netProfit"] },
-
           maxDrawdown: {
             $let: {
               vars: {
@@ -266,7 +316,7 @@ export async function getBacktestStats(req: NextRequest, id: string) {
         },
       },
 
-      // ── 11. Equity labels: ["Start", "T1", "T2" …] ──
+      // ── 12. Equity labels ──
       {
         $addFields: {
           equityLabels: {
@@ -282,17 +332,34 @@ export async function getBacktestStats(req: NextRequest, id: string) {
               },
             },
           },
-          // rename for clean API response
           trades: "$tradeSnapshots",
         },
       },
 
-      // ── 12. Strip internals ──
+      // ── 13. Strip internals ──
       {
         $project: {
           equityCurveRaw: 0,
           pnlSequence: 0,
           tradeSnapshots: 0,
+        },
+      },
+
+      // ── 14. Final stage — format averageRR as "1:n" string ──
+      // This is the ONLY place the string conversion happens,
+      // after all math/comparisons are done.
+      {
+        $addFields: {
+          averageRR: {
+            $concat: ["1:", { $toString: "$averageRRNum" }],
+          },
+        },
+      },
+
+      // ── 15. Drop the numeric helper ──
+      {
+        $project: {
+          averageRRNum: 0,
         },
       },
     ]);
@@ -306,7 +373,6 @@ export async function getBacktestStats(req: NextRequest, id: string) {
     );
   }
 }
-
 export async function createBacktest(req: NextRequest) {
   try {
     const body = await req.json();
