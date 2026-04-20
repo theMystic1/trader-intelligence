@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DashboardData } from "@/types";
 import { useDashboard } from "@/hooks/useDashboard";
 import AdminDashboardSkeleton from "@/app/loading";
+import { usePlans } from "@/hooks/usePlans";
 
 /* ──────────────────────────────────────────
    Mock — replace with: const data = await getDashboardData()
@@ -586,6 +587,9 @@ function Section({
    Empty state
 ────────────────────────────────────────── */
 function EmptyDashboard() {
+  const { plansLoading, plans } = usePlans();
+
+  console.log(plans);
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center px-4">
       <div className="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center mb-5">
@@ -610,16 +614,20 @@ function EmptyDashboard() {
         Log trades to unlock charts, win rate, streaks, session analysis, and AI
         insights.
       </p>
-      <p className="mb-6 text-blue-500 font-bold italic text-sm">
-        But first create a winning plan, to guide your trades and maximize your
-        returns.
-      </p>
-      <Link
-        href="/trading-plan/new"
-        className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
-      >
-        Create trading plan →
-      </Link>
+      {plans?.data?.length > 0 ? null : (
+        <>
+          <p className="mb-6 text-blue-500 font-bold italic text-sm">
+            But first create a winning plan, to guide your trades and maximize
+            your returns.
+          </p>
+          <Link
+            href="/trading-plan/new"
+            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+          >
+            Create trading plan →
+          </Link>
+        </>
+      )}
     </div>
   );
 }

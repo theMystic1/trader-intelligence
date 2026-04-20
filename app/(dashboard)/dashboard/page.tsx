@@ -12,6 +12,7 @@ export const metadata: Metadata = {
       "Monitor your trading stats and performance insights in real time.",
   },
 };
+
 const MainDashboard = () => {
   return <Dashboard />;
 };

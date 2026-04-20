@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import TradingPlan from "../models/trade-plan.schema";
 import { dbConnect } from "../server";
+import "@/server/models/instrument.schema";
 
 export const createTradingPlan = async (req: NextRequest) => {
   try {

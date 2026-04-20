@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import Backtest from "../models/backtesting.schema";
 import { BacktestTrade } from "../models/backtest-trade.schema";
 import { dbConnect } from "../server";
+import "@/server/models/instrument.schema";
+import "@/server/models/trade-plan.schema";
 
 export async function getBacktestStats(req: NextRequest, id: string) {
   const connected = await dbConnect();
