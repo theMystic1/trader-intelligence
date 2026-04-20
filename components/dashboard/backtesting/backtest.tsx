@@ -740,7 +740,7 @@ export default function BacktestPage() {
               />
               <StatCard
                 label="Expectancy"
-                value={`${stats.expectancy.toFixed(2)}R`}
+                value={`1:${stats.expectancy.toFixed(2)}R`}
                 sub="per trade"
               />
               <StatCard
