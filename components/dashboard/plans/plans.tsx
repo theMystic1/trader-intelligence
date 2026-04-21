@@ -10,6 +10,8 @@ import { Modal } from "@/components/ui/modal";
 import { toApiError } from "@/server/lib/api-error";
 import toast from "react-hot-toast";
 import { deleteTradingPlan } from "@/server/lib/api/trades/plans/api";
+import { GiCreditsCurrency } from "react-icons/gi";
+import { BiDollarCircle } from "react-icons/bi";
 
 /* ───────────────────────────────
    CARD (UNCHANGED, CLEANED SLIGHTLY)
@@ -91,6 +93,8 @@ export function StrategyDetailView({
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
+
+  console.log(plan);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -198,6 +202,20 @@ export function StrategyDetailView({
                 ))}
               </div>
             </div>
+          </div>
+        </Section>
+        <Section title="Pairs" icon={<BiDollarCircle />}>
+          <div className="flex flex-wrap gap-6">
+            {plan?.pairs.map((pair) => (
+              <div
+                key={pair?._id}
+                className={`flex flex-col items-center p-1 border rounded-lg`}
+              >
+                <p className="text-blue-400 text-xs font-bold">
+                  {pair?.pairName}
+                </p>
+              </div>
+            ))}
           </div>
         </Section>
 

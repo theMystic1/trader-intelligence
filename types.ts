@@ -28,12 +28,7 @@ export type TradingPlanType = {
   userId?: string;
   name: string;
   description?: string;
-  pairs:
-    | string[]
-    | {
-        value: string;
-        id: string;
-      }[];
+  pairs: any[];
   timeframes: {
     htf: string[];
     mtf: string[];
