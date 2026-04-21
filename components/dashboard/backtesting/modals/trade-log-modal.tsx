@@ -603,10 +603,17 @@ const TradeLogModal = ({ backtestId, onRefetch }: Props) => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <FieldLabel>Setup type</FieldLabel>
-                <SelectField
+                {/*<SelectField
                   options={SETUPS as unknown as string[]}
                   defaultValue={form.setupType || ""}
                   onChange={(v: string) => set("setupType")(v)}
+                />*/}
+
+                <InputField
+                  type="text"
+                  value={form.setupType}
+                  onChange={(e) => set("setupType")(e.target.value)}
+                  placeholder="Breakout and retest"
                 />
               </div>
               <div>
