@@ -655,14 +655,14 @@ export default function BacktestPage() {
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-white">
-                Backtest Results
+            <div className="flex items-center gap-2 my-1">
+              <h1 className="text-xs lg:text-lg font-bold text-white">
+                {singleBt?.tradingPlanId?.name} backtest
               </h1>
               <span
-                className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
+                className={`text-xs text-center font-bold px-2 py-0.5 rounded-full border ${
                   stats.hasEdge
                     ? "bg-green-500/15 text-green-400 border-green-500/30"
                     : "bg-red-500/15 text-red-400 border-red-500/30"
