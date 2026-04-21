@@ -10,6 +10,7 @@ export const useBacktests = () => {
   } = useQuery({
     queryKey: ["backtesting"],
     queryFn: getBacktests,
+    refetchOnWindowFocus: true,
   });
 
   return { backtests, isLoadingBacktests, refetchBacktests };
