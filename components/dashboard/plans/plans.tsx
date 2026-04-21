@@ -207,10 +207,7 @@ export function StrategyDetailView({
         <Section title="Pairs" icon={<BiDollarCircle />}>
           <div className="flex flex-wrap gap-6">
             {plan?.pairs.map((pair) => (
-              <div
-                key={pair?._id}
-                className={`flex flex-col items-center p-1 border rounded-lg`}
-              >
+              <div key={pair?._id} className={`flex flex-col items-center`}>
                 <p className="text-blue-400 text-xs font-bold">
                   {pair?.pairName}
                 </p>
