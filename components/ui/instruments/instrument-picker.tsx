@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { InstrumentSelector } from "./instruments";
 import { Modal } from "../modal";
 import { ScrollSentinel } from "../scroll-sentinel";
@@ -21,6 +21,7 @@ type Props = {
   isFetchingNextPage?: boolean;
 
   showValue?: boolean;
+  editValue?: InstrumentType;
 };
 
 export const InstrumentPicker = ({
@@ -31,9 +32,12 @@ export const InstrumentPicker = ({
   hasMore,
   isFetchingNextPage,
   showValue,
+  editValue,
 }: Props) => {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<InstrumentType | null>(null);
+  const [selected, setSelected] = useState<InstrumentType | null>(
+    editValue ?? null,
+  );
 
   const handleSelect = (instrument: InstrumentType) => {
     setSelected(instrument);

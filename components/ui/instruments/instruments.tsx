@@ -15,6 +15,7 @@ type Props = {
   onSelect: (instrument: InstrumentType) => void;
   isLoading: boolean;
   showValue?: boolean;
+  editValue?: InstrumentType;
 };
 
 export const InstrumentSelector = ({
@@ -22,6 +23,7 @@ export const InstrumentSelector = ({
   onSelect,
   isLoading,
   showValue = false,
+  editValue,
 }: Props) => {
   const [search, setSearch] = useState("");
   const router = useRouter();

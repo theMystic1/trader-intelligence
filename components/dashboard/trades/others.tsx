@@ -546,12 +546,14 @@ function InputField({
   onChange,
   value,
   type = "text",
+  defaultValue,
 }: {
   placeholder?: string;
   prefix?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   value?: string;
   type?: "text" | "number" | "password" | "date" | "datetime-local";
+  defaultValue?: string;
 }) {
   return (
     <div
@@ -583,6 +585,7 @@ function InputField({
         type={type}
         onChange={onChange}
         value={value}
+        defaultValue={defaultValue}
       />
     </div>
   );

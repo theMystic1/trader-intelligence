@@ -2,7 +2,7 @@
 
 import { Modal } from "@/components/ui/modal";
 import useGetInstruments from "@/hooks/usegetInstruments";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FieldLabel, InputField, SelectField } from "../../trades/others";
 import { InstrumentPicker } from "@/components/ui/instruments/instrument-picker";
 import { TIMEFRAMES } from "@/lib/constants";
@@ -10,7 +10,7 @@ import { usePlans } from "@/hooks/usePlans";
 import { BacktestStatus, TradingPlanType } from "@/types";
 import { toApiError } from "@/server/lib/api-error";
 import toast from "react-hot-toast";
-import { createBacktest } from "@/server/lib/api/backtest/api";
+import { createBacktest, updateBacktest } from "@/server/lib/api/backtest/api";
 import { QueryObserverResult } from "@tanstack/react-query";
 
 // tradingPlanId
@@ -25,25 +25,40 @@ import { QueryObserverResult } from "@tanstack/react-query";
 const BacktestModal = ({
   type = "new",
   onRefetch,
+  openEdit,
+  editData,
+  onClose,
 }: {
   type?: "new" | "edit";
   onRefetch?: () => Promise<void>;
+  openEdit?: boolean;
+  editData?: any;
+  onClose?: () => void;
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(Boolean(openEdit));
   const [selectedInstrument, setSelectedInstrument] = useState<
     string | undefined
-  >(undefined);
+  >(editData?._id);
 
-  const [date, setDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [date, setDate] = useState<string>(editData?.startDate);
+  const [endDate, setEndDate] = useState<string>(editData?.endDate);
   const [tradingPlanId, setTradingPlanId] = useState<{
     value: string;
     label: string;
-  }>();
-  const [initialBalance, setInitialBalance] = useState<number>(0);
-  const [riskPerTrade, setRiskPerTrade] = useState<number>(0);
-  const [status, setStatus] = useState<BacktestStatus>("running");
-  const [timeframe, setTimeframe] = useState<string>("");
+  }>({
+    value: editData?.tradingPlanId?._id ?? "",
+    label: editData?.tradingPlanId?.name ?? "",
+  });
+  const [initialBalance, setInitialBalance] = useState<number>(
+    editData?.initialBalance,
+  );
+  const [riskPerTrade, setRiskPerTrade] = useState<number>(
+    editData?.riskPerTrade,
+  );
+  const [status, setStatus] = useState<BacktestStatus>(
+    editData?.status ?? "running",
+  );
+  const [timeframe, setTimeframe] = useState<string>(editData?.timeframe ?? "");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const {
@@ -62,16 +77,34 @@ const BacktestModal = ({
     label: plan.name,
   }));
 
-  console.log(tradingPlanId);
+  useEffect(() => {
+    if (editData) {
+      setTradingPlanId({
+        value: editData.tradingPlanId._id,
+        label: editData.tradingPlanId.name,
+      });
+      setDate(editData.startDate?.split("T")[0]);
+      setEndDate(editData.endDate?.split("T")[0]);
+      setRiskPerTrade(editData.riskPerTrade);
+      setStatus(editData.status);
+      setTimeframe(editData.timeframe);
+      setInitialBalance(editData.initialBalance);
+      setSelectedInstrument(editData.pair?._id);
+    }
+  }, [editData]);
 
+  // console.log(tradingPlanId);
+
+  console.log(editData?.startDate);
   const handleSubmit = async () => {
     setIsLoading(true);
     if (!selectedInstrument) {
       setIsLoading(false);
       return toast.error("Please select a trading pair");
     }
+
     try {
-      await createBacktest({
+      const body = {
         pair: selectedInstrument,
         startDate: date,
         endDate,
@@ -80,10 +113,20 @@ const BacktestModal = ({
         status,
         timeframe,
         initialBalance: Number(initialBalance),
-      });
+      };
+      if (type === "edit") {
+        await updateBacktest(editData?._id!, body);
+      } else {
+        await createBacktest(body);
+      }
       if (onRefetch) await onRefetch();
       setIsOpen(false);
-      toast.success("Backtest created successfully");
+      onClose?.();
+      toast.success(
+        type === "edit"
+          ? "Backtest updated successfully"
+          : "Backtest created successfully",
+      );
     } catch (error) {
       const { message } = toApiError(error);
       toast.error(message);
@@ -95,15 +138,20 @@ const BacktestModal = ({
 
   return (
     <div className="">
-      <button
-        onClick={() => setIsOpen(true)}
-        className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg"
-      >
-        + Add
-      </button>
+      {type === "new" && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg"
+        >
+          + Add
+        </button>
+      )}
       <Modal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        isOpen={isOpen || Boolean(openEdit)}
+        onClose={() => {
+          setIsOpen(false);
+          onClose?.();
+        }}
         title={type === "new" ? "New Backtest Pair" : "Edit Backtest Pair"}
       >
         {plansLoading ? (
@@ -124,6 +172,8 @@ const BacktestModal = ({
                   onSelect={(instrument: any) =>
                     setSelectedInstrument(instrument?._id)
                   }
+                  // showValue={type === "edit"}
+                  editValue={editData?.pair}
                 />
               </div>
               <div>
@@ -178,6 +228,7 @@ const BacktestModal = ({
                   type="date"
                   onChange={(e) => setDate(e.target.value)}
                   value={date}
+                  // defaultValue={editData?.startDate}
                 />
               </div>
               <div>
@@ -187,6 +238,7 @@ const BacktestModal = ({
                   type="date"
                   onChange={(e) => setEndDate(e.target.value)}
                   value={endDate}
+                  // defaultValue={editData?.endDate}
                 />
               </div>
             </div>

@@ -16,10 +16,12 @@ import Link from "next/link";
 
 export default function BacktestOverviewTable({
   backtestData,
+  onOpenEdit,
 }: {
   backtestData: BacktestType[];
+  onOpenEdit?: (bt: BacktestType) => void;
 }) {
-  console.log(backtestData);
+  // console.log(backtestData);
   return (
     <TableWrapper>
       <Table>
@@ -64,12 +66,22 @@ export default function BacktestOverviewTable({
               </TableCell>
 
               <TableCell className="text-gray-500 text-xs">
-                <Link
-                  className="text-blue-400 hover:text-blue-300"
-                  href={`/backtesting/${bt._id}`}
-                >
-                  View logs
-                </Link>
+                <span className="flex items-center gap-2">
+                  <Link
+                    className="bg-blue-400 text-xs hover:bg-blue-300 text-white px-2 rounded-sm"
+                    href={`/backtesting/${bt._id}`}
+                  >
+                    View
+                  </Link>
+
+                  <button
+                    onClick={() => onOpenEdit?.(bt)}
+                    className="bg-yellow-600 hover:bg-yellow-500 transition-all duration-300 text-white px-2 rounded-sm"
+                    aria-label="Edit backtest"
+                  >
+                    edit
+                  </button>
+                </span>
               </TableCell>
             </TableRow>
           ))}

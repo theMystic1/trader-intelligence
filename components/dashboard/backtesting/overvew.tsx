@@ -94,6 +94,8 @@ function BacktestCard({ bt, onClick }: { bt: any; onClick: () => void }) {
 export default function BacktestsPage() {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | "edge" | "no-edge">("all");
+  const [editData, setEditData] = useState<null | any>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
 
   const { backtests, isLoadingBacktests, refetchBacktests } = useBacktests();
   const { overviewStats, isLoadingOverviewStats, refetchOverviewStats } =
@@ -138,6 +140,16 @@ export default function BacktestsPage() {
               await refetchOverviewStats();
             }}
           />
+          <BacktestModal
+            type="edit"
+            onRefetch={async () => {
+              await refetchBacktests();
+              await refetchOverviewStats();
+            }}
+            openEdit={isEditing}
+            onClose={() => setIsEditing(false)}
+            editData={editData}
+          />
         </div>
 
         {/* FILTERS */}
@@ -175,7 +187,13 @@ export default function BacktestsPage() {
           </div>
         ) : (
           <div className="mt-10">
-            <BacktestOverviewTable backtestData={backtestData} />
+            <BacktestOverviewTable
+              backtestData={backtestData}
+              onOpenEdit={(bt) => {
+                setEditData(bt);
+                setIsEditing(true);
+              }}
+            />
           </div>
         )}
       </div>
