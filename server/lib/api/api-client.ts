@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import { getToken } from "../helpers";
+import { getToken, clearToken } from "../helpers";
 
 export const getAuthToken = () => {
   if (typeof window === "undefined") return null;
@@ -53,6 +53,7 @@ apiClient.interceptors.response.use(
     if (status === 401) {
       // optional: auto logout or token refresh hook
       console.warn("Unauthorized - token may be invalid/expired");
+      clearToken();
     }
 
     return Promise.reject(error);

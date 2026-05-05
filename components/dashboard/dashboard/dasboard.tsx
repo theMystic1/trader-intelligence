@@ -392,11 +392,15 @@ function SessionBars({ data }: { data: DashboardData["sessionPerformance"] }) {
 ────────────────────────────────────────── */
 function PairLeaderboard({ data }: { data: DashboardData["pairLeaderboard"] }) {
   const max = data?.map((p) => p.winRate)?.reduce((a, b) => Math.max(a, b), 1);
+
+  const sortedByWinRate = data?.sort((a, b) => b.winRate - a.winRate);
+  // sort by win rate and total trades taken
+
   return (
     <div className="flex flex-col gap-3">
-      {data?.map((p, i) => (
+      {sortedByWinRate?.map((p, i) => (
         <div key={p.pair} className="flex items-center gap-3">
-          <span className="w-4 text-[10px] text-gray-600 font-bold text-right flex-shrink-0">
+          <span className="w-4 text-[10px] text-gray-600 font-bold text-right shrink-0">
             {i + 1}
           </span>
           <div className="flex-1 min-w-0">
@@ -645,6 +649,8 @@ export default function Dashboard() {
   const isEmpty = dasdata?.data.overview.totalJournals === 0;
   if (isEmpty) return <EmptyDashboard />;
 
+  const data = dasdata?.data;
+
   const {
     overview,
     journalCurve,
@@ -655,9 +661,7 @@ export default function Dashboard() {
     backtestSummary,
     streaks,
     planCount,
-  } = dasdata?.data;
-
-  // console.log(dasdata);
+  } = data || {};
 
   return (
     <div className="px-4 sm:px-6 pb-10 space-y-4 z-0">

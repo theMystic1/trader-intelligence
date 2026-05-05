@@ -1,5 +1,6 @@
 "use client"; // Error boundaries must be Client Components
 
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Error({
@@ -9,6 +10,7 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
   useEffect(() => {
     // Log the error to an error reporting service
     console.error(error);
@@ -24,7 +26,10 @@ export default function Error({
       <p>
         <button
           className="bg-gray-600 py-2 px-4 rounded-md  text-purple-100 cursor-pointer"
-          onClick={reset}
+          onClick={() => {
+            reset();
+            router.refresh();
+          }}
         >
           Refresh
         </button>
