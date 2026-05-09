@@ -3,11 +3,12 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { GiCancel } from "react-icons/gi";
 import Logo from "../ui/logo";
 import { links } from "@/lib/constants";
 import { Icon } from "../dashboard/dashboard/Dashboard";
+import cookies from "js-cookie";
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface MobileDrawerProps {
 export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href;
+  const router = useRouter();
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -40,6 +42,12 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   }, [onClose]);
 
   if (typeof window === "undefined") return null;
+
+  const handleLogout = () => {
+    cookies.remove(process.env.NEXT_PUBLIC_ACCESS_TOKEN!);
+
+    router.push("/login");
+  };
 
   return createPortal(
     <>
@@ -107,6 +115,14 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                 {item.title}
               </Link>
             ))}
+
+            <button
+              className="flex items-center justify-center py-2 px-4 rounded-sm bg-red-500 gap-2 text-white text-sm cursor-pointer mt-2 w-full"
+              onClick={handleLogout}
+            >
+              <Icon name="signout" size={13} color="#ffff" />{" "}
+              <span>Sign out</span>
+            </button>
           </nav>
 
           <div className="h-4" />
