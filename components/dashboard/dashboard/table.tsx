@@ -23,10 +23,16 @@ export const Table = ({
 export const TableRow = ({
   children,
   className,
+  onClick,
 }: {
   children: ReactNode;
   className?: string;
-}) => <tr className={className ?? ""}>{children}</tr>;
+  onClick?: () => void;
+}) => (
+  <tr className={className ?? ""} onClick={onClick}>
+    {children}
+  </tr>
+);
 export const TableHeadWithRow = ({
   children,
   className,

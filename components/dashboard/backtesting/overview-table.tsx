@@ -55,11 +55,11 @@ export default function BacktestOverviewTable({
 
               <TableCell>
                 <span
-                  className={`text-xs px-2 py-0.5 rounded ${
+                  className={`text-xs px-2 py-0.5 rounded-lg ${
                     bt.status === "completed"
                       ? "bg-green-500/15 text-green-400"
                       : "bg-yellow-500/15 text-yellow-400"
-                  }`}
+                  } uppercase`}
                 >
                   {bt.status}
                 </span>

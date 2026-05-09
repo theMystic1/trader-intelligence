@@ -333,7 +333,7 @@ export default function TradingJournalPage() {
       <Modal
         isOpen={showJournal}
         onClose={() => setShowJournal(false)}
-        title="Journal"
+        title="Backtest Trade Details"
       >
         <EntryDetail entry={selected!} onClose={() => setShowJournal(false)} />
       </Modal>

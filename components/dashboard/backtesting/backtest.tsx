@@ -555,7 +555,9 @@ export default function BacktestPage() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [filterOutcome, setFilterOutcome] = useState<"all" | Outcome>("all");
   const [filterDir, setFilterDir] = useState<"all" | Direction>("all");
-  const [isLoading, setIsLoading] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
   const { backtest, isLoadingBacktest, refetchBacktest } = useSingleBacktest();
   const { backtestStats, isLoadingBacktestStats, refetchBacktestStats } =
     useBacktestStats();
@@ -620,28 +622,6 @@ export default function BacktestPage() {
   const singleBt = backtest?.data;
   const hasNoTrades = stats.totalTrades === 0;
 
-  const handleSubmit = async () => {
-    // if (!validate()) return;
-    setIsLoading(true);
-    try {
-      // BULK_TRADES_LOSS
-      await logNewTradesBulk(
-        {
-          trades: BULK_TRADES_WIN,
-        },
-        singleBt?._id,
-      );
-
-      toast.success("Trade logged successfully");
-      await refetchAll();
-    } catch (err) {
-      const { message } = toApiError(err);
-      toast.error(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#0f1117] px-4 sm:px-6 lg:px-8 py-8 font-sans">
       <div className="max-w-7xl mx-auto">
@@ -701,9 +681,39 @@ export default function BacktestPage() {
               >
                 {singleBt?.status ?? "—"}
               </span>
+              <button
+                onClick={() => {
+                  setIsOpen(true);
+                  setOpenEdit(false);
+                  setSelectedTrade(null);
+                }}
+                className="bg-green-600 hover:bg-green-500 transition-colors text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-2"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2.5"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Log Trade
+              </button>
               <TradeLogModal
                 backtestId={singleBt?._id ?? ""}
                 onRefetch={refetchAll}
+                type={openEdit ? "edit" : "add"}
+                open={isOpen || openEdit}
+                setOpen={() => {}}
+                onClose={() => {
+                  setIsOpen(false);
+                  setOpenEdit(false);
+                  setSelectedTrade(null);
+                }}
+                trade={selectedTrade}
               />
             </div>
           </div>
@@ -925,6 +935,11 @@ export default function BacktestPage() {
                 sortDir={sortDir}
                 filtered={filtered}
                 handleSort={handleSort}
+                onOpenEdit={(trade) => {
+                  setSelectedTrade(trade);
+                  setOpenEdit(true);
+                }}
+                onRefetch={refetchAll}
               />
 
               <div className="flex items-center justify-between px-5 py-3 border-t border-[#1e2a3a]">

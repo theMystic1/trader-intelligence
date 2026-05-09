@@ -10,20 +10,33 @@ import {
   TableWrapper,
   Th,
 } from "../dashboard/table";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Badge, DirectionBadge } from "./backtest";
+import { Modal } from "@/components/ui/modal";
+import { EntryDetail } from "./single-nacktest-details";
+import { toApiError } from "@/server/lib/api-error";
+import toast from "react-hot-toast";
+import { deleteTrade } from "@/server/lib/api/backtest/api";
 
 const BacktestTable = ({
   sortKey,
   sortDir,
   handleSort,
   filtered,
+  onOpenEdit,
+  onRefetch,
 }: {
   sortKey: SortKey;
   sortDir: "asc" | "desc";
   handleSort: (col: SortKey) => void;
   filtered: Trade[];
+  onOpenEdit: (bt: any) => void;
+  onRefetch: () => Promise<void>;
 }) => {
+  const [showJournal, setShowJournal] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<Trade | null>(null);
+  const [deleteId, setDeleteId] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const SortIcon = ({ col }: { col: SortKey }) => (
     <span
       className={`ml-1 ${sortKey === col ? "text-blue-400" : "text-gray-700"}`}
@@ -44,6 +57,26 @@ const BacktestTable = ({
     </Th>
   );
 
+  const handleDelete = async () => {
+    try {
+      setDeleting(true);
+
+      await deleteTrade(deleteId);
+      await onRefetch();
+      toast.success("Trade entry deleted successfully");
+      setDeleteId(null);
+      setShowJournal(false);
+      setSelectedEntry(null);
+      setDeleting(false);
+    } catch (error) {
+      const { message } = toApiError(error);
+      console.error("Error deleting trade entry:", error);
+      toast.error(message);
+    }
+  };
+
+  // console.log(filtered);
+
   return (
     <TableWrapper>
       <Table>
@@ -56,11 +89,11 @@ const BacktestTable = ({
           <ThSort col="takeProfit">TP</ThSort>
           <ThSort col="riskReward">R:R</ThSort>
           <ThSort col="profitLoss">P&L</ThSort>
-          <ThSort col="profitLossPercent">%</ThSort>
+          {/* <ThSort col="profitLossPercent">%</ThSort> */}
           <ThSort col="outcome">Outcome</ThSort>
-          <Th>Setup</Th>
+          {/* <Th>Setup</Th> */}
           <Th>Session</Th>
-          <Th>Notes</Th>
+          <Th>Action</Th>
         </TableHeadWithRow>
         <TableBody>
           {filtered.length === 0 ? (
@@ -75,7 +108,11 @@ const BacktestTable = ({
             filtered.map((t, i) => (
               <TableRow
                 key={t.id}
-                className={`border-b border-[#1a2030] hover:bg-[#0f1621] transition-colors ${i % 2 === 0 ? "" : "bg-[#0f1117]/40"}`}
+                className={`border-b border-[#1a2030] hover:bg-[#0f1621] transition-colors ${i % 2 === 0 ? "" : "bg-[#0f1117]/40"} cursor-pointer`}
+                onClick={() => {
+                  setSelectedEntry(t);
+                  setShowJournal(true);
+                }}
               >
                 <TableCell>
                   <span className="text-xs font-semibold text-gray-400">
@@ -112,7 +149,7 @@ const BacktestTable = ({
                       : `$${t.profitLoss.toLocaleString()}`}
                   </span>
                 </TableCell>
-                <TableCell>
+                {/* <TableCell>
                   <span
                     className={`text-xs font-semibold ${t.profitLossPercent > 0 ? "text-green-400" : t.profitLossPercent < 0 ? "text-red-400" : "text-yellow-400"}`}
                   >
@@ -121,22 +158,38 @@ const BacktestTable = ({
                       ? "—"
                       : `${t.profitLossPercent}%`}
                   </span>
-                </TableCell>
+                </TableCell> */}
                 <TableCell>
                   <Badge outcome={t.outcome} />
                 </TableCell>
-                <TableCell>
+                {/* <TableCell>
                   <span className="text-xs text-gray-400 bg-[#1e2a3a] px-2 py-0.5 rounded">
                     {t.setupType}
                   </span>
-                </TableCell>
+                </TableCell> */}
                 <TableCell className="text-xs">{t.session}</TableCell>
-                <TableCell>
-                  <span
-                    className="text-xs text-gray-500 max-w-[160px] block truncate"
-                    title={t.notes}
-                  >
-                    {t.notes}
+                <TableCell className="text-gray-500 text-xs">
+                  <span className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenEdit(t);
+                      }}
+                      className="bg-yellow-600 hover:bg-yellow-500 transition-all duration-300 text-white px-2 rounded-sm capitalize"
+                      aria-label="Edit backtest"
+                    >
+                      edit
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteId(t.id);
+                      }}
+                      className="bg-red-400 text-xs hover:bg-red-300 text-white px-2 rounded-sm  capitalize"
+                    >
+                      delete
+                    </button>
                   </span>
                 </TableCell>
               </TableRow>
@@ -144,6 +197,67 @@ const BacktestTable = ({
           )}
         </TableBody>
       </Table>
+      <Modal onClose={() => setDeleteId(null)} isOpen={Boolean(deleteId)}>
+        <div>
+          <h2 className="text-lg font-bold mb-4">Confirm Deletion</h2>
+          <p className="mb-6">
+            Are you sure you want to delete this trade log entry?
+          </p>
+          <div className="flex justify-end gap-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteId(null);
+              }}
+              className="px-4 py-2 bg-gray-300 text-gray-800 border border-gray-800 hover:bg-gray-400 rounded"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded flex items-center gap-2 disabled:bg-gray-500 disabled:hover:bg-gray-300"
+            >
+              {deleting ? (
+                <>
+                  <svg
+                    className="animate-spin"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  <span> Saving…</span>
+                </>
+              ) : (
+                <>Delete</>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={showJournal}
+        onClose={() => {
+          setShowJournal(false);
+          setSelectedEntry(null);
+        }}
+        title="Backtest Trade Details"
+      >
+        <EntryDetail
+          entry={selectedEntry}
+          onClose={() => setShowJournal(false)}
+        />
+      </Modal>
     </TableWrapper>
   );
 };

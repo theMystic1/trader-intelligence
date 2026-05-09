@@ -1,15 +1,25 @@
 "use client";
 
 import { Modal } from "@/components/ui/modal";
-import { useState, useEffect, JSX } from "react";
+import { useState, useEffect, JSX, Dispatch } from "react";
 import { FieldLabel, InputField, SelectField } from "../../trades/others";
 import toast from "react-hot-toast";
 import { toApiError } from "@/server/lib/api-error";
-import { logNewTrade } from "@/server/lib/api/backtest/api";
+import {
+  logNewTrade,
+  updateBacktest,
+  updateTrade,
+} from "@/server/lib/api/backtest/api";
+import { TradeType } from "@/types";
 
 type Props = {
   backtestId: string;
   onRefetch?: () => Promise<void>;
+  type: "add" | "edit";
+  trade?: any;
+  open: boolean;
+  setOpen: () => void;
+  onClose: () => void;
 };
 
 const OUTCOMES = ["win", "loss", "breakeven"] as const;
@@ -35,8 +45,8 @@ type Outcome = "win" | "loss" | "breakeven";
 interface FormState {
   direction: Direction;
   outcome: Outcome;
-  entryTime: string;
-  exitTime: string;
+  entryTime: any;
+  exitTime: any;
   entryPrice: string;
   exitPrice: string;
   stopLoss: string;
@@ -296,8 +306,16 @@ function SummaryPill({
 /* ──────────────────────────────────────────
    Main component
 ────────────────────────────────────────── */
-const TradeLogModal = ({ backtestId, onRefetch }: Props) => {
-  const [isOpen, setIsOpen] = useState(false);
+const TradeLogModal = ({
+  backtestId,
+  onRefetch,
+  trade,
+  type,
+  // openEdit,
+  open,
+  onClose,
+  setOpen,
+}: Props) => {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<StepIndex>(0);
   const [form, setForm] = useState<FormState>(INITIAL);
@@ -321,9 +339,33 @@ const TradeLogModal = ({ backtestId, onRefetch }: Props) => {
     if (rr) setForm((p) => ({ ...p, riskReward: rr }));
   }, [form.direction, form.entryPrice, form.exitPrice, form.stopLoss]);
 
+  // console.log(trade);
+  const toInputDateTime = (date: string | Date) =>
+    new Date(date).toISOString().split(".")[0].slice(0, 16);
+  // "2025-04-22T00:00:00.000Z" → "2025-04-22T00:00"
+  useEffect(() => {
+    if (trade) {
+      setForm({
+        direction: trade.direction,
+        outcome: trade.outcome,
+        entryTime: toInputDateTime(trade.entryTime), // ← "2025-04-22T14:30"
+        exitTime: toInputDateTime(trade.exitTime), // ← "2025-04-22T15:45"
+        entryPrice: trade.entryPrice.toString(),
+        exitPrice: trade.exitPrice.toString(),
+        stopLoss: trade.stopLoss.toString(),
+        takeProfit: trade.takeProfit.toString(),
+        riskReward: trade.riskReward.toString(),
+        profitLoss: trade.profitLoss.toString(),
+        profitLossPercent: trade.profitLossPercent.toString(),
+        setupType: trade.setupType,
+        session: trade.session,
+        notes: trade.notes,
+      });
+    }
+  }, [trade]);
   /* reset on close */
   const handleClose = () => {
-    setIsOpen(false);
+    onClose();
     setStep(0);
     setForm(INITIAL);
     setErrors({});
@@ -361,27 +403,48 @@ const TradeLogModal = ({ backtestId, onRefetch }: Props) => {
     if (!validate()) return;
     setIsLoading(true);
     try {
-      await logNewTrade(
-        {
-          direction: form.direction,
-          outcome: form.outcome,
-          entryTime: form.entryTime,
-          exitTime: form.exitTime,
-          entryPrice: Number(form.entryPrice),
-          exitPrice: Number(form.exitPrice),
-          stopLoss: Number(form.stopLoss),
-          takeProfit: Number(form.takeProfit),
-          riskReward: Number(form.riskReward),
-          profitLoss: Number(form.profitLoss),
-          profitLossPercent: Number(form.profitLossPercent),
-          setupType: form.setupType,
-          session: form.session,
-          notes: form.notes,
-        },
-        backtestId,
-      );
+      type === "edit"
+        ? await updateTrade(trade?.id, {
+            direction: form.direction,
+            outcome: form.outcome,
+            entryTime: form.entryTime,
+            exitTime: form.exitTime,
+            entryPrice: Number(form.entryPrice),
+            exitPrice: Number(form.exitPrice),
+            stopLoss: Number(form.stopLoss),
+            takeProfit: Number(form.takeProfit),
+            riskReward: Number(form.riskReward),
+            profitLoss: Number(form.profitLoss),
+            profitLossPercent: Number(form.profitLossPercent),
+            setupType: form.setupType,
+            session: form.session || "London",
+            notes: form.notes,
+          })
+        : await logNewTrade(
+            {
+              direction: form.direction,
+              outcome: form.outcome,
+              entryTime: form.entryTime,
+              exitTime: form.exitTime,
+              entryPrice: Number(form.entryPrice),
+              exitPrice: Number(form.exitPrice),
+              stopLoss: Number(form.stopLoss),
+              takeProfit: Number(form.takeProfit),
+              riskReward: Number(form.riskReward),
+              profitLoss: Number(form.profitLoss),
+              profitLossPercent: Number(form.profitLossPercent),
+              setupType: form.setupType,
+              session: form.session || "London",
+              notes: form.notes,
+            },
+            backtestId,
+          );
 
-      toast.success("Trade logged successfully");
+      toast.success(
+        type === "add"
+          ? "Trade logged successfully"
+          : "Trade updated successfully",
+      );
       handleClose();
       if (onRefetch) await onRefetch();
     } catch (err) {
@@ -414,6 +477,7 @@ const TradeLogModal = ({ backtestId, onRefetch }: Props) => {
                   type="datetime-local"
                   value={form.entryTime}
                   onChange={(e) => set("entryTime")(e.target.value)}
+                  // defaultValue={trade ? trade.entryTime : ""}
                 />
                 {errors.entryTime && (
                   <p className="text-xs text-red-400 mt-1">
@@ -430,6 +494,7 @@ const TradeLogModal = ({ backtestId, onRefetch }: Props) => {
                   type="datetime-local"
                   value={form.exitTime}
                   onChange={(e) => set("exitTime")(e.target.value)}
+                  // defaultValue={trade ? trade.exitTime : ""}
                 />
               </div>
             </div>
@@ -705,7 +770,7 @@ const TradeLogModal = ({ backtestId, onRefetch }: Props) => {
 
   return (
     <div>
-      <button
+      {/* <button
         onClick={() => setIsOpen(true)}
         className="bg-green-600 hover:bg-green-500 transition-colors text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-2"
       >
@@ -721,9 +786,9 @@ const TradeLogModal = ({ backtestId, onRefetch }: Props) => {
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
         Log Trade
-      </button>
+      </button> */}
 
-      <Modal isOpen={isOpen} onClose={handleClose} title="Log Backtest Trade">
+      <Modal isOpen={open} onClose={handleClose} title="Log Backtest Trade">
         {/* Stepper */}
         <Stepper current={step} total={STEPS.length} />
 
@@ -813,7 +878,7 @@ const TradeLogModal = ({ backtestId, onRefetch }: Props) => {
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  Save Trade
+                  {type === "add" ? "Log Trade" : "Update Trade"}
                 </>
               )}
             </button>

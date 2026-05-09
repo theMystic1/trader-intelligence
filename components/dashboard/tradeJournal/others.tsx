@@ -233,7 +233,7 @@ export function OutcomeBadge({ outcome }: { outcome: TradeOutcome }) {
 export function TypeBadge({ type }: { type: TradeType }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${type === "LONG" ? "bg-blue-500/15 text-blue-400" : "bg-orange-500/15 text-orange-400"}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${type === "LONG" ? "bg-blue-500/15 text-blue-400" : "bg-orange-500/15 text-orange-400"} uppercase`}
     >
       {type === "LONG" ? "▲" : "▼"} {type}
     </span>

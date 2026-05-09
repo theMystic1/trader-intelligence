@@ -30,10 +30,19 @@ export async function updateBacktest(backtestId: string, body: BacktestType) {
   return patch(`${baseUrl}/${backtestId}`, body);
 }
 
+// TRADES
 export async function logNewTrade(body: any, backtestId: string) {
   return post(`${baseUrl}/${backtestId}/trade`, body);
 }
 
 export async function logNewTradesBulk(body: any, backtestId: string) {
   return post(`${baseUrl}/${backtestId}/bulk`, body);
+}
+
+export async function updateTrade(tradeId: string, body: any) {
+  return patch(`${baseUrl}/${tradeId}/trade`, body);
+}
+
+export async function deleteTrade(tradeId: string) {
+  return del(`${baseUrl}/${tradeId}/trade`);
 }
