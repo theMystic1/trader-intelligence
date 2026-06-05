@@ -93,7 +93,7 @@ const BacktestModal = ({
     }
   }, [editData]);
 
-  // console.log(tradingPlanId);
+  console.log(tradingPlanId);
 
   // console.log(editData?.startDate);
   const handleSubmit = async () => {
@@ -108,7 +108,8 @@ const BacktestModal = ({
         pair: selectedInstrument,
         startDate: date,
         endDate,
-        tradingPlanId: tradingPlanId?.value! || plans?.data[0]._id,
+        tradingPlanId:
+          tradingPlanId?.value! || tradingPlanId || plans?.data[0]._id,
         riskPerTrade: Number(riskPerTrade),
         status,
         timeframe,
