@@ -468,7 +468,7 @@ function SelectField({
   defaultValue?: string;
   instrument?: boolean;
   onChange?: (value: any) => void;
-  value?: string;
+  value?: any;
 }) {
   const router = useRouter();
   const pathname = usePathname();

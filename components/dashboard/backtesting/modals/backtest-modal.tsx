@@ -95,7 +95,7 @@ const BacktestModal = ({
 
   // console.log(tradingPlanId);
 
-  console.log(editData?.startDate);
+  // console.log(editData?.startDate);
   const handleSubmit = async () => {
     setIsLoading(true);
     if (!selectedInstrument) {
@@ -135,6 +135,8 @@ const BacktestModal = ({
       setIsLoading(false);
     }
   };
+
+  // console.log(tradingPlanId);
 
   return (
     <div className="">
@@ -181,7 +183,7 @@ const BacktestModal = ({
                 <SelectField
                   options={planOptions ?? []}
                   defaultValue=""
-                  value={tradingPlanId?.value ?? ""}
+                  value={tradingPlanId ?? ""}
                   onChange={(value: any) => setTradingPlanId(value)}
                 />
               </div>
