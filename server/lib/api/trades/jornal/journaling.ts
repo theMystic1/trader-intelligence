@@ -23,7 +23,7 @@ export const getJournals = ({
   type,
   tradeOutcome,
   page,
-  limit = 20,
+  limit = 100,
   search,
 }: {
   type?: string;
